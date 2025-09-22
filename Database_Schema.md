@@ -13,11 +13,6 @@ ___
 - Bids_Table
 - TBD?
 ___
-<<<<<<< HEAD
-YO this be rishav
-### Attributes
-- TBD with group concensus
-=======
 
 ## Attributes
 - User_Table
@@ -32,8 +27,7 @@ YO this be rishav
   - Item_Owner -> User_ID
   - Item_Status
   - Item_Description
-  - 
->>>>>>> d5b085e (feat: filling in the schema outline)
+  -
 
 ___
 
@@ -43,7 +37,3 @@ ___
 - Finalize Entities and Attributes
 - Create diagram (Excalidraw or Mermaid)
 - Write the schema.sql
-<<<<<<< HEAD
-=======
-
->>>>>>> d5b085e (feat: filling in the schema outline)
