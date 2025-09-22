@@ -26,8 +26,13 @@ ___
   - Item_Name
   - Item_Owner -> User_ID
   - Item_Status
-  - Item_Description
-  -
+  - Item_Description -> VARCHAR
+  
+- Auction_Table
+  - Auction_Id -> Primary Key
+  - Item_Id
+  - Item_Status
+  - Current_Bid
 
 ___
 
