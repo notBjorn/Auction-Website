@@ -13,8 +13,8 @@ ___
 - An item is sold via auction transaction with start/end times and a starting price
 - Users (buyers) can place bids
   - Highest bid before end of time wins the auction
+  - Rule: You can not bid on your own item
 - All items have a category
-  - Do we consider nested categories?
 - The site lists auction with current price and the highest bid placed
 
 
@@ -78,15 +78,13 @@ ___
 
 - Categories
   - **(PK)** : Category_ID
-  - **(FK)** : Parent_Category_ID (points back to self)
   - Category_Name
 
 ___
 
 ## Open Questions & Next Steps
 
-- How do we track auction status? 
-- Do we include Categories? Any other optional functionality?
+- How do we track auction status?
 - Team agreement on final list
 - Create diagram (dbdiagram.io) - Link with Git (Rishav has master)
 - Write the schema.sql with tables and variable types indicated
