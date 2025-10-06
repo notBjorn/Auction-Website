@@ -63,6 +63,7 @@ ___
 - Auctions
   - **(PK)** : Auction_ID
   - **(FK)** : Item_Id (Items.Item_ID)
+  - **(FK)** : Auction_Winner (User.User_ID) 
   - Start_Price
   - Start_Time
   - End_Time
