@@ -1,0 +1,28 @@
+# --- Global default: ignore everything ---
+*
+
+# --- Whitelist the project directories (track them) ---
+!/.gitignore
+!/auction-auth/
+!/auction-auth/**
+!/public_html/
+!/public_html/**
+
+# --- Ignore typical noise INSIDE those dirs ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+node_modules/
+*.env
+.env.*
+*.log
+dist/
+build/
+*.zip
+*.tar
+*.tar.gz
+*.swp
