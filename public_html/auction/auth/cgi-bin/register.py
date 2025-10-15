@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/cafcode/auction-auth/.venv/bin/python3
 import os, re, html
 from utils import *
 

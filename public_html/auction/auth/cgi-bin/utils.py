@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/home/cafcode/auction-auth/.venv/bin/python3
+
 import os, sys, html, configparser, datetime as dt, secrets
 import mysql.connector, bcrypt
 

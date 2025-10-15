@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/home/cafcode/auction-auth/.venv/bin/python3
 from utils import *
 def main():
     if os.environ.get("REQUEST_METHOD","GET") == "GET":
