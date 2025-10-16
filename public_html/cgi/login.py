@@ -16,16 +16,17 @@ import os, html
 #    </form>""
 
 def main():
+
     username = "username"
     password = "username"
 #    cn = db()
     method = os.environ.get("REQUEST_METHOD","GET").upper()
 
     if method == "GET":
-        xsrf, cookie = ensure_temp_csrf()
-        body = render_form(xsrf)
-        header([cookie])
-        print(html_page("Login", body))
+#        xsrf, cookie = ensure_temp_csrf()
+#        body = render_form(xsrf)
+#        header([cookie])
+#        print(html_page("Login", body))
         return
 
     # POST
@@ -34,20 +35,21 @@ def main():
 #    if not formdata.get("csrf") or formdata["csrf"] != xsrf_cookie:
 #        header(); print(html_page("Error","<p>Invalid CSRF token.</p>")); return
 
-    email = (formdata.get("email","") or "").strip().lower()
-    pw    = formdata.get("password","") or ""
+#    email = (formdata.get("email","") or "").strip().lower()
+#    pw    = formdata.get("password","") or ""
 
 print ("Content type: text/html\n\n")
 print ("<html>")
 print ("<body>")
-print ("<p> username is </p>"+username)
-print ("<p> pword is </p>"+password)
+#print ("<p> username is </p>"+username)
+#print ("<p> pword is </p>"+password)
+print ("you made it")
+
 print ("</body>")
 print ("</html>")
 
 #    with cn.cursor(dictionary=True) as cur:
-#        cur.execute("SELECT user_id, password_hash FROM `User` WHERE email=%s", (email,))
-#        row = cur.fetchone()
+#        cur.execute("SELECT user_id, password_hash FROM `User` WHERE email=%s", (email,))#        row = cur.fetchone()
 
 #    if not row or not check_pw(pw, row["password_hash"]):
 #        header(); print(html_page("Login", render_form(xsrf_cookie, "Invalid credentials."))); return
