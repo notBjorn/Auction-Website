@@ -1,6 +1,15 @@
-AddType application/x-httpd-php .php .html
-Options +ExecCGI
+# --- Execute CGI for Python (and optionally Perl/CGI) ---
+Options +ExecCGI -Indexes
 AddHandler cgi-script .py
-AddHandler cgi-script .pl
-AddHandler cgi-script .php
-AddHandler cgi-script .cgi
+# If you truly have Perl/other CGI scripts, keep these; otherwise delete:
+# AddHandler cgi-script .pl
+# AddHandler cgi-script .cgi
+
+# --- Default index file ---
+DirectoryIndex index.html
+
+# --- Optional: force HTTPS (good practice; comment out if it causes issues) ---
+RewriteEngine On
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+

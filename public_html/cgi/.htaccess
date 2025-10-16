@@ -1,6 +1,0 @@
-AddType application/x-httpd-php .php .html
-Options +ExecCGI
-AddHandler cgi-script .py
-AddHandler cgi-script .pl
-AddHandler cgi-script .php
-AddHandler cgi-script .cgi
