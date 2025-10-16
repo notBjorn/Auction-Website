@@ -6,7 +6,7 @@ def render_form(csrf, msg=""):
     note = f'<p style="color:red;">{html.escape(msg)}</p>' if msg else ""
     return f"""
     <h1>Log in</h1>{note}
-    <form method="post" action="/cgi-bin/login.py">
+    <form method="post" action="/cgi/login.py">
       <input type="hidden" name="csrf" value="{csrf}">
       <label for="e">Email</label>
       <input id="e" name="email" type="email" required>
