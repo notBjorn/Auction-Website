@@ -24,3 +24,5 @@ print(f"<p>Current MySQL Time: {result['date_and_time']}</p>")
 print("</body></html>")
 
 connection.close()
+
+
