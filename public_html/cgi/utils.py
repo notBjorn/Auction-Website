@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import os, sys, html, configparser, datetime as dt, secrets
-import mysql.connector, bcrypt
+import pymysql, bcrypt
 
 # ---- Config & DB ----
 def load_config(path="~/auction-auth/config/app.ini"):
@@ -10,12 +10,12 @@ def load_config(path="~/auction-auth/config/app.ini"):
 CFG = load_config()
 
 def db():
-    return mysql.connector.connect(
-        host=CFG["mysql"]["host"],
-        user=CFG["mysql"]["user"],
-        password=CFG["mysql"]["password"],
-        database=CFG["mysql"]["database"],
-        autocommit=True,
+    return pymysql.connect(
+        host='localhost',
+        user='cs370_section2_cafcode',       # your team's MySQL username
+        password='edocfac_001', # your team's MySQL password
+        database='cs370_section2_cafcode',   # your team's database
+        cursorclass=pymysql.cursors.DictCursor
     )
 
 # ---- HTTP helpers ----
@@ -106,6 +106,7 @@ def create_session(user_id:int, cn):
         cur.execute(
             "INSERT INTO sessions(id,user_id,csrf_token,expires_at,last_seen) VALUES(%s,%s,%s,%s,%s)",
             (sid, user_id, csrf, expires, now_utc()))
+    cn.commit()
     return sid, csrf, ttl*60
 
 def get_session(cn):
@@ -120,6 +121,7 @@ def get_session(cn):
         row = cur.fetchone()
         if not row: return None
         cur.execute("UPDATE sessions SET last_seen=UTC_TIMESTAMP() WHERE id=%s", (sid,))
+        cn.commit()
         return row
 
 def destroy_session(cn):
@@ -127,4 +129,5 @@ def destroy_session(cn):
     if not sid: return
     with cn.cursor() as cur:
         cur.execute("DELETE FROM sessions WHERE id=%s", (sid,))
+    cn.commit()
 
