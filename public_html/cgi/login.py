@@ -48,7 +48,9 @@ def main():
     #sid, csrf, max_age = create_session(row["user_id"], cn)
     #cookie_sid = set_cookie("SID", sid, max_age=max_age, secure=False)
     #cookie_kill_xsrf = expire_cookie("XSRF")
-    redirect("/~cafcode/cgi/dashboard.py", extra=[cookie_sid, cookie_kill_xsrf])
+    redirect("/~cafcode/cgi/dashboard.py")
+
+             #extra=[cookie_sid, cookie_kill_xsrf])
 
 if __name__ == "__main__":
     main()
