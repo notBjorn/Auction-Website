@@ -9,7 +9,7 @@ def render_form(csrf, msg=""):
     <form method="post" action="/cgi/login.py">
       <input type="hidden" name="csrf" value="{csrf}">
       <label for="e">Email</label>
-      <input id="e" name="email" type="email" required>
+      <input id="e" name="email" type="text" required>
       <label for="p">Password</label>
       <input id="p" name="password" type="password" required>
       <button type="submit">Log in</button>
