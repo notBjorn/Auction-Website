@@ -11,3 +11,17 @@ CREATE TABLE IF NOT EXISTS User (
 	password_hash	VARCHAR(255) NOT NULL,
 	created		TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 )	ENGINE=InnoDB;
+
+-- --------------------------------------------------------
+-- Table structure for table `Sessions`
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS Sessions (
+    session_id   CHAR(64)   PRIMARY KEY,                 -- random hex token for session
+    user_id      INT        NOT NULL,                    -- links to User.user_id
+    created_at   DATETIME   NOT NULL DEFAULT NOW(),      -- when session created
+    last_seen_at DATETIME   NOT NULL DEFAULT NOW(),      -- last page interaction
+    CONSTRAINT fk_sessions_user
+        FOREIGN KEY (user_id) REFERENCES `User`(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
