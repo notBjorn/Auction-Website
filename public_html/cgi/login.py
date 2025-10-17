@@ -45,9 +45,9 @@ def main():
     if not row or pw != row["password_hash"]:
         header(); print(html_page("Login", render_form(xsrf_cookie, "Invalid credentials."))); return
 
-    sid, csrf, max_age = create_session(row["user_id"], cn)
-    cookie_sid = set_cookie("SID", sid, max_age=max_age, secure=False)
-    cookie_kill_xsrf = expire_cookie("XSRF")
+    #sid, csrf, max_age = create_session(row["user_id"], cn)
+    #cookie_sid = set_cookie("SID", sid, max_age=max_age, secure=False)
+    #cookie_kill_xsrf = expire_cookie("XSRF")
     redirect("/~cafcode/cgi/dashboard.py", extra=[cookie_sid, cookie_kill_xsrf])
 
 if __name__ == "__main__":
