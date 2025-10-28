@@ -2,46 +2,19 @@
 # -*- coding: utf-8 -*-
 
 # =============================================================================
-# CS370 Auction Website — transactions.py (COMMENT SCAFFOLD)
-# Purpose: Display a logged-in user's transaction-related activity in four
-#          required categories only:
-#            1) Selling
-#            2) Purchases
-#            3) Current Bids
-#            4) Didn't Win
-#
-# Constraints (per rubric):
-#   - Server-side CGI only (no JS required for core logic).
-#   - Auth via our own session table (no third-party auth).
-#   - Backed by MySQL.
-#   - Output must be valid HTML5.
-#   - Provide a control to increase a user's maximum bid on items in "Current Bids".
+# CS370 Auction Website — transactions.py (LEAN FINAL USING utils.py)
 # =============================================================================
 
-
-# ====== Imports / Site Utilities (used by our project) =======================
 import cgitb; cgitb.enable()
+import html
+
 from utils import (
     html_page, require_valid_session, SITE_ROOT,
-    redirect, expire_cookie
+    redirect, expire_cookie, query_all
 )
 
-# Get user_id from the session; if missing → redirect to login.
-# Open DB connection.
-# Run the four query blocks
-# Render results with headings:
-# “Selling” → subsections “Open” and “Sold”
-# “Purchases”
-# “Current Bids” (with “Increase Max Bid” links)
-# “Didn’t Win”
-#Close DB; send the response.
+# ====== SQL DEFINITIONS =======================================================
 
-
-# ====== SQL DEFINITIONS (parameterized; no string concat) ====================
-# - Keep SQL here as simple, reviewable constants.
-# - These are *shape* guides; add columns/aliases as you need for rendering.
-
-# ====== Purpose: Lists the current open auctions that the logged-in user is selling. ======
 SQL_SELLING_OPEN = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           (SELECT MAX(b.amount) FROM Bid b WHERE b.auction_id = a.auction_id) AS current_high
@@ -52,7 +25,6 @@ SQL_SELLING_OPEN = """
                    ORDER BY a.end_time ASC; \
                    """
 
-# ====== Purpose: Shows all closed auctions that this user sold. ======
 SQL_SELLING_SOLD = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           w.amount AS winning_amount,
@@ -74,7 +46,6 @@ SQL_SELLING_SOLD = """
                    ORDER BY a.end_time DESC; \
                    """
 
-# ====== Purpose: Shows auctions that the user won as a buyer. ======
 SQL_PURCHASES_WON = """
                     SELECT a.auction_id, i.item_id, i.title, a.end_time,
                            s.user_name AS seller_name,
@@ -96,7 +67,6 @@ SQL_PURCHASES_WON = """
                     ORDER BY a.end_time DESC; \
                     """
 
-# ====== Purpose: Lists auctions still open that this user has bid on. ======
 SQL_CURRENT_BIDS = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           (SELECT MAX(b2.amount) FROM Bid b2 WHERE b2.auction_id = a.auction_id) AS current_high,
@@ -105,12 +75,13 @@ SQL_CURRENT_BIDS = """
                    FROM Auction a
                             JOIN Item i ON i.item_id = a.item_id
                    WHERE a.status = 'OPEN'
-                     AND EXISTS (SELECT 1 FROM Bid bx
-                                 WHERE bx.auction_id = a.auction_id AND bx.bidder_id = %s)
+                     AND EXISTS (
+                       SELECT 1 FROM Bid bx
+                       WHERE bx.auction_id = a.auction_id AND bx.bidder_id = %s
+                   )
                    ORDER BY a.end_time ASC; \
                    """
 
-# ====== Purpose: Shows auctions the user participated in but lost. ======
 SQL_DIDNT_WIN = """
                 SELECT a.auction_id, i.item_id, i.title, a.end_time,
                        w.amount AS winning_amount,
@@ -128,167 +99,190 @@ SQL_DIDNT_WIN = """
                 ) w ON w.auction_id = a.auction_id
                          JOIN User u ON u.user_id = w.bidder_id
                 WHERE a.status = 'CLOSED'
-                  AND EXISTS (SELECT 1 FROM Bid me
-                              WHERE me.auction_id = a.auction_id AND me.bidder_id = %s)
+                  AND EXISTS (
+                    SELECT 1 FROM Bid me
+                    WHERE me.auction_id = a.auction_id AND me.bidder_id = %s
+                )
                   AND w.bidder_id <> %s
                 ORDER BY a.end_time DESC; \
                 """
 
+# ====== RENDER HELPERS ========================================================
 
-# ====== MAIN CONTROLLER ======================================================
+def _fmt_money(val):
+    if val is None: return "—"
+    try: return f"${float(val):.2f}"
+    except: return html.escape(str(val))
+
+def _fmt_dt(dt):
+    # utils/db may return Python datetime or str; handle both
+    try:
+        return html.escape(dt.strftime("%Y-%m-%d %H:%M"))
+    except Exception:
+        return html.escape(str(dt or ""))
+
+def render_nav():
+    return f"""
+<nav>
+  <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
+  <a href="{SITE_ROOT}cgi/logout.py">Log Out</a>
+  <strong>Transactions</strong>
+</nav>
+""".strip()
+
+def render_selling(open_rows, sold_rows):
+    # Active
+    if open_rows:
+        trs = []
+        for r in open_rows:
+            trs.append(
+                "<tr>"
+                f"<td>{html.escape(r.get('title',''))}</td>"
+                f"<td>{_fmt_dt(r.get('end_time'))}</td>"
+                f"<td>{_fmt_money(r.get('current_high'))}</td>"
+                f"<td><a href='{SITE_ROOT}cgi/auction.py?id={r['auction_id']}'>View</a></td>"
+                "</tr>"
+            )
+        active_html = (
+            "<table><thead><tr><th>Title</th><th>Ends</th><th>Current Highest</th><th></th></tr></thead>"
+            f"<tbody>{''.join(trs)}</tbody></table>"
+        )
+    else:
+        active_html = "<p>No active listings yet.</p>"
+
+    # Sold
+    if sold_rows:
+        trs = []
+        for r in sold_rows:
+            trs.append(
+                "<tr>"
+                f"<td>{html.escape(r.get('title',''))}</td>"
+                f"<td>{_fmt_dt(r.get('end_time'))}</td>"
+                f"<td>{_fmt_money(r.get('winning_amount'))}</td>"
+                f"<td>{html.escape(r.get('winner_name',''))}</td>"
+                "</tr>"
+            )
+        sold_html = (
+            "<table><thead><tr><th>Title</th><th>Ended</th><th>Final Price</th><th>Winner</th></tr></thead>"
+            f"<tbody>{''.join(trs)}</tbody></table>"
+        )
+    else:
+        sold_html = "<p>No sold items yet.</p>"
+
+    return (
+            "<section id='selling'>"
+            "<h2>Selling</h2>"
+            "<h3>Active Listings</h3>" + active_html +
+            "<h3>Sold Items</h3>" + sold_html +
+            "</section>"
+    )
+
+def render_purchases(rows):
+    if not rows:
+        return "<section id='purchases'><h2>Purchases</h2><p>No purchases yet.</p></section>"
+    trs = []
+    for r in rows:
+        trs.append(
+            "<tr>"
+            f"<td>{html.escape(r.get('title',''))}</td>"
+            f"<td>{html.escape(r.get('seller_name',''))}</td>"
+            f"<td>{_fmt_money(r.get('winning_amount'))}</td>"
+            f"<td>{_fmt_dt(r.get('end_time'))}</td>"
+            "</tr>"
+        )
+    return (
+        "<section id='purchases'><h2>Purchases</h2>"
+        "<table><thead><tr><th>Title</th><th>Seller</th><th>Final Price</th><th>Ended</th></tr></thead>"
+        f"<tbody>{''.join(trs)}</tbody></table></section>"
+    )
+
+def render_current_bids(rows):
+    if not rows:
+        return "<section id='current-bids'><h2>Current Bids</h2><p>No current bids yet.</p></section>"
+    trs = []
+    for r in rows:
+        cur_high = r.get("current_high")
+        my_high  = r.get("my_high")
+        status = "Outbid"
+        try:
+            if my_high is not None and (cur_high is None or float(my_high) >= float(cur_high)):
+                status = "You are currently highest"
+        except Exception:
+            pass
+        form_html = (
+            f"<form method='post' action='{SITE_ROOT}cgi/bid_update.py' class='inline-form'>"
+            f"<input type='hidden' name='auction_id' value='{r['auction_id']}'>"
+            f"<label>New Max: <input name='amount' type='number' step='0.01' min='0.01' required></label>"
+            f"<button type='submit'>Increase Max Bid</button>"
+            f"</form>"
+        )
+        trs.append(
+            "<tr>"
+            f"<td>{html.escape(r.get('title',''))}</td>"
+            f"<td>{_fmt_dt(r.get('end_time'))}</td>"
+            f"<td>{_fmt_money(cur_high)}</td>"
+            f"<td>{status}</td>"
+            f"<td>{form_html}</td>"
+            "</tr>"
+        )
+    return (
+        "<section id='current-bids'><h2>Current Bids</h2>"
+        "<table><thead><tr><th>Title</th><th>Ends</th><th>Current Highest</th><th>Status</th><th></th></tr></thead>"
+        f"<tbody>{''.join(trs)}</tbody></table></section>"
+    )
+
+def render_didnt_win(rows):
+    if not rows:
+        return "<section id='didnt-win'><h2>Didn't Win</h2><p>No lost auctions yet.</p></section>"
+    trs = []
+    for r in rows:
+        trs.append(
+            "<tr>"
+            f"<td>{html.escape(r.get('title',''))}</td>"
+            f"<td>{_fmt_dt(r.get('end_time'))}</td>"
+            f"<td>{_fmt_money(r.get('winning_amount'))}</td>"
+            f"<td>{html.escape(r.get('winner_name',''))}</td>"
+            "</tr>"
+        )
+    return (
+        "<section id='didnt-win'><h2>Didn't Win</h2>"
+        "<table><thead><tr><th>Title</th><th>Ended</th><th>Winning Bid</th><th>Winner</th></tr></thead>"
+        f"<tbody>{''.join(trs)}</tbody></table></section>"
+    )
+
+# ====== MAIN ================================================================
+
 def main():
-    # -------------------------------------------------------------------------
-    # 1) SESSION GUARD:
-    #    - Ensure the user is logged in. If not, expire cookie and redirect.
-    #    - Extract the current user's user_id (uid) for query parameters.
-    # -------------------------------------------------------------------------
-    user, sid = require_valid_session()     # returns current user's user_id or redirects
+    # 1) Session
+    user, sid = require_valid_session()
     if not user:
         headers = []
         if sid:
             headers.append(expire_cookie("SID", path=SITE_ROOT))
         redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
         return
+    uid = user["user_id"] if isinstance(user, dict) and "user_id" in user else int(user)
 
-    # -------------------------------------------------------------------------
-    # 2) DB CONNECTION / QUERY EXECUTION:
-    #    - Open a DB connection (from utils, or inline here if allowed).
-    #    - Execute the 4 query sets (selling_open, selling_sold, purchases_won,
-    #      current_bids, didnt_win), passing uid as needed.
-    #    - Keep results as simple lists of dicts for rendering.
-    #    - Handle exceptions with cgitb (already enabled) or a friendly page.
-    # -------------------------------------------------------------------------
-    # Example sketch if you have utils.query_all():
-    # selling_open   = query_all(SQL_SELLING_OPEN,   [uid])
-    # selling_sold   = query_all(SQL_SELLING_SOLD,   [uid])
-    # purchases_won  = query_all(SQL_PURCHASES_WON,  [uid])
-    # current_bids   = query_all(SQL_CURRENT_BIDS,   [uid, uid])
-    # didnt_win      = query_all(SQL_DIDNT_WIN,      [uid, uid])
+    # 2) Queries (via utils.query_all)
+    selling_open   = query_all(SQL_SELLING_OPEN,  (uid,))
+    selling_sold   = query_all(SQL_SELLING_SOLD,  (uid,))
+    purchases_won  = query_all(SQL_PURCHASES_WON, (uid,))
+    current_bids   = query_all(SQL_CURRENT_BIDS,  (uid, uid))
+    didnt_win      = query_all(SQL_DIDNT_WIN,     (uid, uid))
 
-    # If you don't have query helpers, add a tiny wrapper here (still 2 files total).
+    # 3) Render
+    body_html = "\n".join([
+        "<h1>My Transactions</h1>",
+        render_nav(),
+        render_selling(selling_open, selling_sold),
+        render_purchases(purchases_won),
+        render_current_bids(current_bids),
+        render_didnt_win(didnt_win),
+    ])
 
-    # -------------------------------------------------------------------------
-    # 3) HTML RENDERING (SERVER-SIDE ONLY):
-    #    - Build four <section> blocks:
-    #        a) Selling → "Active Listings" (selling_open), "Sold Items" (selling_sold)
-    #        b) Purchases (purchases_won)
-    #        c) Current Bids (current_bids) → show "Outbid" when my_high < current_high
-    #           and always include a small form pointing to bid_update.py
-    #        d) Didn't Win (didnt_win)
-    #    - For empty result sets, show the provided empty-state messages.
-    #    - Keep markup semantic: <section>, <h2>/<h3>, <table> or <ul>, etc.
-    #    - Escape dynamic text (titles, names).
-    # -------------------------------------------------------------------------
-    # body_parts = []
-    # body_parts.append(render_nav())
-    # body_parts.append(render_selling(selling_open, selling_sold))
-    # body_parts.append(render_purchases(purchases_won))
-    # body_parts.append(render_current_bids(current_bids))
-    # body_parts.append(render_didnt_win(didnt_win))
-    #
-    # body_html = "\n".join(body_parts)
-
-    # -------------------------------------------------------------------------
-    # 4) HTTP RESPONSE:
-    #    - Output the final HTML5 document via html_page(title, body_html).
-    #    - Do not print any headers except Content-Type (html_page may handle).
-    # -------------------------------------------------------------------------
-    # print("Content-Type: text/html\n")
-    # print(html_page("My Transactions", body_html))
-
-    # NOTE: The actual rendering functions are kept in this file (below) to
-    # keep the two-file requirement. They're simple string builders.
-    # pass
-
-
-# ====== RENDER HELPERS (simple string builders; no DB calls) =================
-# - Each function receives rows (list[dict]) and returns an HTML snippet.
-# - Use html.escape for titles/user names if your html_page doesn't.
-# - Keep the "Increase Max Bid" form pointing to bid_update.py (POST).
-
-# def render_nav(): ...
-
-# def render_selling(open_rows, sold_rows): ...
-#   - <section id="selling">
-#   - <h2>Selling</h2>
-#   - Subsection "Active Listings": table with Title | Ends | Current Highest | [View]
-#     * If current_high is NULL: show "—" or "Starting price"
-#   - Subsection "Sold Items": table with Title | Ended | Final Price | Winner
-#   - Empty states if lists are empty.
-
-# def render_purchases(rows): ...
-#   - <section id="purchases">
-#   - Columns: Title | Seller | Final Price | Ended
-#   - Empty state if none.
-
-# def render_current_bids(rows): ...
-#   - <section id="current-bids">
-#   - Columns: Title | Ends | Current Highest | Status | [Increase Max Bid form]
-#   - Status rules:
-#       * if my_high is NULL or my_high < current_high → "Outbid"
-#       * else → "You are currently highest"
-#   - Form posts to: f"{SITE_ROOT}cgi/bid_update.py"
-#       <form method="post" action=".../bid_update.py">
-#         <input type="hidden" name="auction_id" value="{auction_id}">
-#         <label>New Max: <input name="amount" type="number" step="0.01" required></label>
-#         <button type="submit">Increase Max Bid</button>
-#       </form>
-#   - Always show the form (rubric says include a control regardless of status).
-
-# def render_didnt_win(rows): ...
-#   - <section id="didnt-win">
-#   - Columns: Title | Ended | Winning Bid | Winner
-#   - Optional: also show "Your Max" if you add that to the SQL.
-#   - Empty state if none.
-
-# ====== HTML Structure (For testing only, this needs to be rendered dynamically above) ===================
-# ====== Delete this section once 2 & 3 function properly =======
-body = f"""
-<h1>My Transactions</h1>
-<nav>
-    <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
-    <a href="{SITE_ROOT}cgi/logout.py">Log Out</a>
-    <strong>Transactions</strong>
-</nav>
-
-<section id="selling">
-    <h2>Selling</h2>
-    <h3>Active Listings</h3>
-    <p>No active listings yet.</p>
-    <h3>Sold Items</h3>
-    <p>No sold items yet.</p>
-</section>
-
-<section id ="purchases">
-    <h2>Purchases</h2>
-    <p>No purchases yet.</p>
-</section>
-
-<section id ="current-bids">
-    <h2>Current Bids</h2>
-    <p>No current bids yet.</p>
-</section>
-
-<section id="didnt-win">
-    <h2>Didn't Win</h2>
-    <p>No lost auctions yet.</p>
-</section>
-"""
-
-# 3) Emit full HTML5 via our helper (prints headers + markup)
-print("Content-Type: text/html\n")
-print(html_page("My Transactions", body))
-# =============================================================================
-
-#   4) No filters/pagination required by rubric. Keep markup simple and valid.
-#      Keep all dynamic values HTML-escaped. No inline JS needed.
-
-#   5) Print via html_page(title, body_html) helper (or equivalent):
-#       html = build_html(selling_open, selling_closed, purchases, current_bids, didnt_win)
-#       print(html_page("My Transactions", html))
-
-
-
+    # 4) Response
+    print("Content-Type: text/html\n")
+    print(html_page("My Transactions", body_html))
 
 # ====== Entry Point ==========================================================
 if __name__ == "__main__":
