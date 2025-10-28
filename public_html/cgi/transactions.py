@@ -15,7 +15,7 @@ from utils import (
 
 # --------------------------- QUERY HELPERS -----------------------------------
 
-def fetch_selling(conn, user_id):
+def fetch_selling_active(conn, user_id):
     sql = """
           SELECT
               A.auction_id,
@@ -27,12 +27,34 @@ def fetch_selling(conn, user_id):
           FROM Items I
                    JOIN Auctions A ON A.item_id = I.item_id
           WHERE I.owner_id = %s
-          ORDER BY A.start_time DESC, A.auction_id DESC
+            AND A.status IN ('scheduled','running')
+          ORDER BY A.status DESC, A.start_time DESC, A.auction_id DESC
               LIMIT 200 \
           """
     with conn.cursor() as cur:
         cur.execute(sql, (user_id,))
         return cur.fetchall()
+
+def fetch_selling_sold(conn, user_id):
+    sql = """
+          SELECT
+              A.auction_id,
+              I.item_name,
+              'ended' AS status,
+              A.start_price,
+              A.start_time,
+              DATE_ADD(A.start_time, INTERVAL A.duration SECOND) AS end_time
+          FROM Items I
+                   JOIN Auctions A ON A.item_id = I.item_id
+          WHERE I.owner_id = %s
+            AND A.status = 'ended'
+          ORDER BY end_time DESC, A.auction_id DESC
+              LIMIT 200 \
+          """
+    with conn.cursor() as cur:
+        cur.execute(sql, (user_id,))
+        return cur.fetchall()
+
 
 def fetch_purchases(conn, user_id):
     sql = """
@@ -267,12 +289,14 @@ def main():
 
     conn = db()
     try:
-        selling      = fetch_selling(conn, user_id)
-        purchases    = fetch_purchases(conn, user_id)
-        current_bids = fetch_current_bids(conn, user_id)
-        didnt_win    = fetch_didnt_win(conn, user_id)
+        selling_active = fetch_selling_active(conn, user_id)
+        selling_sold   = fetch_selling_sold(conn, user_id)
+        purchases      = fetch_purchases(conn, user_id)
+        current_bids   = fetch_current_bids(conn, user_id)
+        didnt_win      = fetch_didnt_win(conn, user_id)
     finally:
         conn.close()
+
 
     body = f"""
 <header><h1>CS370 Auction Portal</h1></header>
@@ -282,7 +306,10 @@ def main():
 
   <section>
     <h3>1) Selling</h3>
-    {render_selling_table(selling)}
+    <h4>Active</h4>
+    {render_selling_table(selling_active)}
+    <h4>Sold</h4>
+    {render_selling_table(selling_sold)}
   </section>
 
   <section>
