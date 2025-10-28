@@ -2,86 +2,180 @@
 # -*- coding: utf-8 -*-
 
 # =============================================================================
-# CS370 Auction Website — transactions.py
-# Lists a logged-in user's transactions (purchases, sales, bids, payouts, etc.).
-# Supports filters (date range, type), sorting, and pagination.
-# Security: requires valid session; consider CSRF for actions (exports).
+# CS370 Auction Website — transactions.py (COMMENT SCAFFOLD)
+# Purpose: Display a logged-in user's transaction-related activity in four
+#          required categories only:
+#            1) Selling
+#            2) Purchases
+#            3) Current Bids
+#            4) Didn't Win
+#
+# Constraints (per rubric):
+#   - Server-side CGI only (no JS required for core logic).
+#   - Auth via our own session table (no third-party auth).
+#   - Backed by MySQL.
+#   - Output must be valid HTML5.
+#   - Provide a control to increase a user's maximum bid on items in "Current Bids".
 # =============================================================================
 
-# ====== Imports / Setup ======================================================
-import cgitb; cgitb.enable()
-import os, html
-from utils import (
-    SITE_ROOT, html_page, redirect,
-    require_valid_session, parse_urlencoded, read_post_body,
-    query_all, query_one, to_decimal_str
-)
 
-# ====== Expected Schema Touchpoints =========================================
-# Tables typically involved (adjust to your schema names/columns):
-#   - User(user_id, email, user_name, ...)
-#   - Item(item_id, seller_id, title, ...)
-#   - Auction(auction_id, item_id, start_time, end_time, status, ...)
-#   - Bid(bid_id, auction_id, bidder_id, amount, bid_time, ...)
-#   - Transaction(tx_id, user_id, type, amount, created, ref_auction_id, ref_item_id, ...)
+# ====== Imports / Site Utilities (used by our project) =======================
+# from utils import html_page, require_valid_session, query_all, query_one, SITE_ROOT
+# (Keep imports minimal; this file only reads and renders.)
+
+
+# ====== Minimal Schema Touchpoints (names may differ; adjust as needed) =====
+# Tables/columns referenced by this page:
+#   User(user_id, user_name, email, ...)
+#   Item(item_id, seller_id, title, ...)
+#   Auction(auction_id, item_id, end_time, status, ...)  -- status: 'OPEN'|'CLOSED'
+#   Bid(bid_id, auction_id, bidder_id, amount, bid_time, ...) 
 #
-# Common transaction types you might use:
-#   - 'BUY', 'SELL', 'FEE', 'PAYOUT', 'REFUND', 'BID_HOLD', 'BID_RELEASE'
+# Category definitions (strict and simple):
+#   Selling:
+#     - OPEN: items where current user is the seller AND auction status is OPEN
+#     - SOLD: items where current user is the seller AND auction status is CLOSED
+#   Purchases:
+#     - CLOSED auctions where current user placed the highest bid (i.e., winner)
+#   Current Bids:
+#     - OPEN auctions where current user has at least one bid
+#     - Show current highest bid; if not highest, show "Outbid" warning
+#     - Include a link/button to raise the user's max bid (to a separate CGI)
+#   Didn't Win:
+#     - CLOSED auctions where current user bid at least once but was NOT the winner
+#     - Show the winning (highest) bid price
 
-# ====== URL / Query Parameters ==============================================
-# GET parameters (all optional):
-#   - page: int >= 1 (default 1)
-#   - per: items per page (default 20; clamp to sane max, e.g., 100)
-#   - type: filter by transaction type (BUY/SELL/FEE/...)
-#   - q: search (e.g., item title)
-#   - from: ISO date (YYYY-MM-DD) inclusive
-#   - to:   ISO date (YYYY-MM-DD) inclusive
-#   - sort: one of ['created_desc','created_asc','amount_desc','amount_asc']
+
+# ====== SQL Sketches (parameterized; no string concatenation) ================
+# -- 1) Selling (OPEN):
+# SELECT a.auction_id, i.item_id, i.title, a.end_time
+#   FROM Auction a
+#   JOIN Item i ON i.item_id = a.item_id
+#  WHERE i.seller_id = %s AND a.status = 'OPEN'
+#  ORDER BY a.end_time ASC;
 #
-# Example:
-#   /cgi/transactions.py?type=BUY&from=2025-10-01&to=2025-10-31&page=2
+# -- 1b) Selling (SOLD):
+# SELECT a.auction_id, i.item_id, i.title, a.end_time
+#   FROM Auction a
+#   JOIN Item i ON i.item_id = a.item_id
+#  WHERE i.seller_id = %s AND a.status = 'CLOSED'
+#  ORDER BY a.end_time DESC;
+#
+# -- 2) Purchases (won by current user):
+# SELECT a.auction_id, i.item_id, i.title, MAX(b.amount) AS winning_bid
+#   FROM Auction a
+#   JOIN Item i ON i.item_id = a.item_id
+#   JOIN Bid  b ON b.auction_id = a.auction_id
+#  WHERE a.status = 'CLOSED'
+#    AND b.bidder_id = %s
+#  GROUP BY a.auction_id
+# HAVING MAX(b.amount) = (
+#     SELECT MAX(b2.amount) FROM Bid b2 WHERE b2.auction_id = a.auction_id
+# )
+#  ORDER BY a.end_time DESC;
+#
+# -- 3) Current Bids (OPEN auctions with at least one bid by current user):
+# SELECT a.auction_id, i.item_id, i.title,
+#        (SELECT MAX(b2.amount) FROM Bid b2 WHERE b2.auction_id = a.auction_id) AS current_high,
+#        (SELECT MAX(b3.amount) FROM Bid b3 WHERE b3.auction_id = a.auction_id AND b3.bidder_id = %s) AS my_high
+#   FROM Auction a
+#   JOIN Item i ON i.item_id = a.item_id
+#  WHERE a.status = 'OPEN'
+#    AND EXISTS (SELECT 1 FROM Bid bx WHERE bx.auction_id = a.auction_id AND bx.bidder_id = %s)
+#  ORDER BY a.end_time ASC;
+#
+# -- 4) Didn't Win (bid but lost on CLOSED auctions):
+# SELECT a.auction_id, i.item_id, i.title,
+#        (SELECT MAX(b2.amount) FROM Bid b2 WHERE b2.auction_id = a.auction_id) AS winning_bid
+#   FROM Auction a
+#   JOIN Item i ON i.item_id = a.item_id
+#  WHERE a.status = 'CLOSED'
+#    AND EXISTS (SELECT 1 FROM Bid bx WHERE bx.auction_id = a.auction_id AND bx.bidder_id = %s)
+#    AND (SELECT MAX(bm.amount) FROM Bid bm WHERE bm.auction_id = a.auction_id AND bm.bidder_id = %s)
+#        < (SELECT MAX(bw.amount) FROM Bid bw WHERE bw.auction_id = a.auction_id)
+#  ORDER BY a.end_time DESC;
 
-# ====== Security / Access Control ===========================================
-# - Must have a valid session (require_valid_session()).
-# - Only show rows belonging to the logged-in user (WHERE t.user_id = ?).
-# - No POST state change here (read-only). If you add "export CSV",
-#   consider CSRF token and content-disposition headers.
 
-# ====== Pagination / Sorting Helpers ========================================
-# - Compute OFFSET = (page-1)*per.
-# - SELECT SQL_CALC_FOUND_ROWS or separate COUNT(*) for total rows.
-# - Derive total_pages, prev/next URLs.
-
-# ====== SQL Sketch ==========================================================
-# SELECT t.tx_id, t.type, t.amount, t.created,
-#        i.title AS item_title, a.auction_id
-#   FROM Transaction t
-#   LEFT JOIN Auction a ON a.auction_id = t.ref_auction_id
-#   LEFT JOIN Item    i ON i.item_id     = t.ref_item_id
-#  WHERE t.user_id = %s
-#    [AND t.type = %s]
-#    [AND DATE(t.created) BETWEEN %s AND %s]
-#    [AND i.title LIKE %search%]  -- only if q provided
-#  ORDER BY t.created DESC  -- per 'sort'
-#  LIMIT %s OFFSET %s;
-
-# ====== Rendering ============================================================
-# - Basic summary header: total count, active filters chips.
-# - Table:
-#     Date | Type | Amount | Item/Auction | Notes
-# - Pagination controls (Prev/Next).
-# - Filter form (GET): type select, date from/to, q, per, sort.
-
-# ====== Controller: Main Request Handler =====================================
+# ====== Controller ===========================================================
 # def main():
-#     """
-#     1) Auth: require_valid_session()
-#     2) Parse/validate GET params (page/per/type/from/to/q/sort)
-#     3) Build parameterized SQL + args
-#     4) query_all() for page results, separate COUNT(*) for total
-#     5) Render html_page() with a table of results and pagination
-#     """
-#     pass  # Implement
+#   1) Ensure valid login:
+#       uid = require_valid_session()  # returns current user's user_id or redirects
+#
+#   2) Fetch four datasets using the SQL above (with parameter uid where needed):
+#       selling_open   = query_all(SQL_SELLING_OPEN,   [uid])
+#       selling_closed = query_all(SQL_SELLING_CLOSED, [uid])
+#       purchases      = query_all(SQL_PURCHASES,      [uid])
+#       current_bids   = query_all(SQL_CURRENT_BIDS,   [uid, uid])
+#       didnt_win      = query_all(SQL_DIDNT_WIN,      [uid, uid])
+#
+#   3) Render a single HTML5 page with four sections:
+#       - Section: "Selling"
+#           Subsection: "Active Listings"  (selling_open)
+#           Subsection: "Sold Items"       (selling_closed)
+#       - Section: "Purchases"             (purchases)
+#       - Section: "Current Bids"          (current_bids)
+#           For each row:
+#             • Show item title and current_high
+#             • If my_high < current_high => display "Outbid" notice
+#             • Always show a small form/button to "Increase Max Bid"
+#               -> action points to /cgi/update_bid.py?auction_id=... (GET or POST)
+#       - Section: "Didn't Win"            (didnt_win)
+#           Show the winning_bid for each item
+#
+#   4) No filters/pagination required by rubric. Keep markup simple and valid.
+#      Keep all dynamic values HTML-escaped. No inline JS needed.
+#
+#   5) Print via html_page(title, body_html) helper (or equivalent):
+#       html = build_html(selling_open, selling_closed, purchases, current_bids, didnt_win)
+#       print(html_page("My Transactions", html))
+
+
+# ====== HTML Structure (keep valid, minimal, and semantic) ===================
+# <!doctype html>
+# <html lang="en">
+#   <head>
+#     <meta charset="utf-8">
+#     <meta name="viewport" content="width=device-width, initial-scale=1">
+#     <title>My Transactions</title>
+#   </head>
+#   <body>
+#     <header>
+#       <h1>My Transactions</h1>
+#       <nav><a href="{SITE_ROOT}">Home</a></nav>
+#     </header>
+#
+#     <main>
+#       <section id="selling">
+#         <h2>Selling</h2>
+#         <h3>Active Listings</h3>
+#         <!-- table of selling_open: Title | Ends -->
+#         <h3>Sold Items</h3>
+#         <!-- table of selling_closed: Title | Ended -->
+#       </section>
+#
+#       <section id="purchases">
+#         <h2>Purchases</h2>
+#         <!-- table: Title | Winning Bid -->
+#       </section>
+#
+#       <section id="current-bids">
+#         <h2>Current Bids</h2>
+#         <!-- table: Title | Current High | My High | Status | [Increase Max Bid] -->
+#         <!-- Status shows "Outbid" if my_high < current_high -->
+#         <!-- Button posts to update_bid.py with auction_id (and CSRF if your site uses it) -->
+#       </section>
+#
+#       <section id="didnt-win">
+#         <h2>Didn't Win</h2>
+#         <!-- table: Title | Winning Bid -->
+#       </section>
+#     </main>
+#
+#     <footer><small>&copy; 2025 Caffeinated Coders</small></footer>
+#   </body>
+# </html>
+# =============================================================================
+
 
 # ====== Entry Point ==========================================================
 # if __name__ == "__main__":
