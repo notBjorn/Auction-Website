@@ -26,27 +26,15 @@ from utils import (
     redirect, expire_cookie
 )
 
-
-# ====== Minimal Schema Touchpoints (names may differ; adjust as needed) =====
-# Tables/columns referenced by this page:
-#   User(user_id, user_name, email, ...)
-#   Item(item_id, seller_id, title, ...)
-#   Auction(auction_id, item_id, end_time, status, ...)  -- status: 'OPEN'|'CLOSED'
-#   Bid(bid_id, auction_id, bidder_id, amount, bid_time, ...) 
-#
-# Category definitions (strict and simple):
-#   Selling:
-#     - OPEN: items where current user is the seller AND auction status is OPEN
-#     - SOLD: items where current user is the seller AND auction status is CLOSED
-#   Purchases:
-#     - CLOSED auctions where current user placed the highest bid (i.e., winner)
-#   Current Bids:
-#     - OPEN auctions where current user has at least one bid
-#     - Show current highest bid; if not highest, show "Outbid" warning
-#     - Include a link/button to raise the user's max bid (to a separate CGI)
-#   Didn't Win:
-#     - CLOSED auctions where current user bid at least once but was NOT the winner
-#     - Show the winning (highest) bid price
+# Get user_id from the session; if missing → redirect to login.
+# Open DB connection.
+# Run the four query blocks above (or consolidate with CTEs if you prefer).
+# Render results with headings:
+# “Selling” → subsections “Open” and “Sold”
+# “Purchases”
+# “Current Bids” (with “Increase Max Bid” links)
+# “Didn’t Win”
+#Close DB; send the response.
 
 
 # ====== SQL Sketches (parameterized; no string concatenation) ================
