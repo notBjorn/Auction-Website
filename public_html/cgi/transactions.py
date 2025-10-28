@@ -20,7 +20,8 @@
 
 
 # ====== Imports / Site Utilities (used by our project) =======================
-# from utils import html_page, require_valid_session, query_all, query_one, SITE_ROOT
+import cgitb; html_page, require_valid_session, SITE_ROOT
+from utils import html_page, require_valid_session, query_all, query_one, SITE_ROOT
 # (Keep imports minimal; this file only reads and renders.)
 
 
@@ -97,9 +98,9 @@
 
 
 # ====== Controller ===========================================================
-# def main():
+def main():
 #   1) Ensure valid login:
-#       uid = require_valid_session()  # returns current user's user_id or redirects
+      uid = require_valid_session()  # returns current user's user_id or redirects
 #
 #   2) Fetch four datasets using the SQL above (with parameter uid where needed):
 #       selling_open   = query_all(SQL_SELLING_OPEN,   [uid])
@@ -131,50 +132,50 @@
 
 
 # ====== HTML Structure (keep valid, minimal, and semantic) ===================
-# <!doctype html>
-# <html lang="en">
-#   <head>
-#     <meta charset="utf-8">
-#     <meta name="viewport" content="width=device-width, initial-scale=1">
-#     <title>My Transactions</title>
-#   </head>
-#   <body>
-#     <header>
-#       <h1>My Transactions</h1>
-#       <nav><a href="{SITE_ROOT}">Home</a></nav>
-#     </header>
-#
-#     <main>
-#       <section id="selling">
-#         <h2>Selling</h2>
-#         <h3>Active Listings</h3>
-#         <!-- table of selling_open: Title | Ends -->
-#         <h3>Sold Items</h3>
-#         <!-- table of selling_closed: Title | Ended -->
-#       </section>
-#
-#       <section id="purchases">
-#         <h2>Purchases</h2>
-#         <!-- table: Title | Winning Bid -->
-#       </section>
-#
-#       <section id="current-bids">
-#         <h2>Current Bids</h2>
-#         <!-- table: Title | Current High | My High | Status | [Increase Max Bid] -->
-#         <!-- Status shows "Outbid" if my_high < current_high -->
-#         <!-- Button posts to update_bid.py with auction_id (and CSRF if your site uses it) -->
-#       </section>
-#
-#       <section id="didnt-win">
-#         <h2>Didn't Win</h2>
-#         <!-- table: Title | Winning Bid -->
-#       </section>
-#     </main>
-#
-#     <footer><small>&copy; 2025 Caffeinated Coders</small></footer>
-#   </body>
-# </html>
-# =============================================================================
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Transactions</title>
+  </head>
+  <body>
+    <header>
+      <h1>My Transactions</h1>
+      <nav><a href="{SITE_ROOT}">Home</a></nav>
+    </header>
+
+    <main>
+      <section id="selling">
+        <h2>Selling</h2>
+        <h3>Active Listings</h3>
+        <!-- table of selling_open: Title | Ends -->
+        <h3>Sold Items</h3>
+        <!-- table of selling_closed: Title | Ended -->
+      </section>
+
+      <section id="purchases">
+        <h2>Purchases</h2>
+        <!-- table: Title | Winning Bid -->
+      </section>
+
+      <section id="current-bids">
+        <h2>Current Bids</h2>
+        <!-- table: Title | Current High | My High | Status | [Increase Max Bid] -->
+        <!-- Status shows "Outbid" if my_high < current_high -->
+        <!-- Button posts to update_bid.py with auction_id (and CSRF if your site uses it) -->
+      </section>
+
+      <section id="didnt-win">
+        <h2>Didn't Win</h2>
+        <!-- table: Title | Winning Bid -->
+      </section>
+    </main>
+
+    <footer><small>&copy; 2025 Caffeinated Coders</small></footer>
+  </body>
+</html>
+=============================================================================
 
 
 # ====== Entry Point ==========================================================
