@@ -20,8 +20,8 @@
 
 
 # ====== Imports / Site Utilities (used by our project) =======================
-import cgitb; html_page, require_valid_session, SITE_ROOT
-from utils import html_page, require_valid_session, query_all, query_one, SITE_ROOT
+import cgitb; cgitb.enable()
+from utils import html_page, require_valid_session, SITE_ROOT
 # (Keep imports minimal; this file only reads and renders.)
 
 
@@ -101,14 +101,14 @@ from utils import html_page, require_valid_session, query_all, query_one, SITE_R
 def main():
 #   1) Ensure valid login:
       uid = require_valid_session()  # returns current user's user_id or redirects
-#
+
 #   2) Fetch four datasets using the SQL above (with parameter uid where needed):
 #       selling_open   = query_all(SQL_SELLING_OPEN,   [uid])
 #       selling_closed = query_all(SQL_SELLING_CLOSED, [uid])
 #       purchases      = query_all(SQL_PURCHASES,      [uid])
 #       current_bids   = query_all(SQL_CURRENT_BIDS,   [uid, uid])
 #       didnt_win      = query_all(SQL_DIDNT_WIN,      [uid, uid])
-#
+
 #   3) Render a single HTML5 page with four sections:
 #       - Section: "Selling"
 #           Subsection: "Active Listings"  (selling_open)
@@ -122,62 +122,54 @@ def main():
 #               -> action points to /cgi/update_bid.py?auction_id=... (GET or POST)
 #       - Section: "Didn't Win"            (didnt_win)
 #           Show the winning_bid for each item
-#
+
+# ====== HTML Structure (keep valid, minimal, and semantic) ===================
+body = f"""
+<h1>My Transactions</h1>
+<nav>
+    <a href="{SITE_ROOT}index.html">Home</a>
+    <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
+    <strong>Transactions</strong>
+</nav>
+
+<section id="selling">
+    <h2>Selling</h2>
+    <h3>Active Listings</h3>
+    <p>No active listings yet.</p>
+    <h3>Sold Items</h3>
+    <p>No sold items yet.</p>
+</section>
+
+<section id ="purchases">
+    <h2>Purchases</h2>
+    <p>No purchases yet.</p>
+</section>
+
+<section id ="current-bids">
+    <h2>Current Bids</h2>
+    <p>No current bids yet.</p>
+</section>
+
+<section id="didn't-win">
+    <h2>Didn't Win</h2>
+    <p>No lost auctions yet.</p>
+</section>
+"""
+
+# 3) Emit full HTML5 via our helper (prints headers + markup)
+print(html_page)("My Transactions", body))
+=============================================================================
+
 #   4) No filters/pagination required by rubric. Keep markup simple and valid.
 #      Keep all dynamic values HTML-escaped. No inline JS needed.
-#
+
 #   5) Print via html_page(title, body_html) helper (or equivalent):
 #       html = build_html(selling_open, selling_closed, purchases, current_bids, didnt_win)
 #       print(html_page("My Transactions", html))
 
 
-# ====== HTML Structure (keep valid, minimal, and semantic) ===================
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Transactions</title>
-  </head>
-  <body>
-    <header>
-      <h1>My Transactions</h1>
-      <nav><a href="{SITE_ROOT}">Home</a></nav>
-    </header>
-
-    <main>
-      <section id="selling">
-        <h2>Selling</h2>
-        <h3>Active Listings</h3>
-        <!-- table of selling_open: Title | Ends -->
-        <h3>Sold Items</h3>
-        <!-- table of selling_closed: Title | Ended -->
-      </section>
-
-      <section id="purchases">
-        <h2>Purchases</h2>
-        <!-- table: Title | Winning Bid -->
-      </section>
-
-      <section id="current-bids">
-        <h2>Current Bids</h2>
-        <!-- table: Title | Current High | My High | Status | [Increase Max Bid] -->
-        <!-- Status shows "Outbid" if my_high < current_high -->
-        <!-- Button posts to update_bid.py with auction_id (and CSRF if your site uses it) -->
-      </section>
-
-      <section id="didnt-win">
-        <h2>Didn't Win</h2>
-        <!-- table: Title | Winning Bid -->
-      </section>
-    </main>
-
-    <footer><small>&copy; 2025 Caffeinated Coders</small></footer>
-  </body>
-</html>
-=============================================================================
 
 
 # ====== Entry Point ==========================================================
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
