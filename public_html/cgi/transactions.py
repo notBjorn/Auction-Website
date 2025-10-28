@@ -100,7 +100,13 @@ from utils import html_page, require_valid_session, SITE_ROOT
 # ====== Controller ===========================================================
 def main():
 #   1) Ensure valid login:
-      uid = require_valid_session()  # returns current user's user_id or redirects
+    user, sid = require_valid_session()     # returns current user's user_id or redirects
+    if not user:
+        headers = []
+        if sid:
+            headers.append(expire_cookie("SID", path=SITE_ROOT))
+        redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
+        return
 
 #   2) Fetch four datasets using the SQL above (with parameter uid where needed):
 #       selling_open   = query_all(SQL_SELLING_OPEN,   [uid])
