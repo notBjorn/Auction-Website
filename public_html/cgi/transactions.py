@@ -3,7 +3,7 @@
 
 # =============================================================================
 # CS370 Auction Website — transactions.py
-# Renders four sections; "Purchases" is LIVE with a real SQL query.
+# Selling and Purchases are LIVE. Current Bids / Didn’t Win are placeholders.
 # =============================================================================
 
 import cgitb; cgitb.enable()
@@ -12,11 +12,35 @@ from utils import (
     SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session, db
 )
 
+# --------------------------- QUERY HELPERS -----------------------------------
+
+def fetch_selling(conn, user_id):
+    """
+    Selling = auctions for items owned by this user.
+    Shows basic auction info. End time = start_time + duration (seconds).
+    """
+    sql = """
+          SELECT
+              A.auction_id,
+              I.item_name,
+              A.status,
+              A.start_price,
+              A.start_time,
+              DATE_ADD(A.start_time, INTERVAL A.duration SECOND) AS end_time
+          FROM Items I
+                   JOIN Auctions A ON A.item_id = I.item_id
+          WHERE I.owner_id = %s
+          ORDER BY A.start_time DESC, A.auction_id DESC
+              LIMIT 200 \
+          """
+    with conn.cursor() as cur:
+        cur.execute(sql, (user_id,))
+        return cur.fetchall()
+
 def fetch_purchases(conn, user_id):
     """
-    A 'purchase' is defined as an ended auction where this user placed the
-    highest bid. Final price is that highest bid.
-    NOTE: We assume Auctions.duration is in SECONDS. If not, change INTERVAL unit.
+    A 'purchase' is an ended auction where this user placed the highest bid.
+    Final price is that highest bid. Duration stored in SECONDS.
     """
     sql = """
           SELECT
@@ -42,11 +66,43 @@ def fetch_purchases(conn, user_id):
         cur.execute(sql, (user_id,))
         return cur.fetchall()
 
+# --------------------------- RENDER HELPERS ----------------------------------
+
+def render_selling_table(rows):
+    if not rows:
+        return '<p class="muted">You are not selling anything yet.</p>'
+
+    out = []
+    out.append('<table class="tbl">')
+    out.append('<thead><tr>'
+               '<th>Auction</th><th>Item</th><th>Status</th>'
+               '<th>Start Price</th><th>Start</th><th>End</th>'
+               '</tr></thead>')
+    out.append('<tbody>')
+    for r in rows:
+        auction_id = html.escape(str(r.get("auction_id","")))
+        item_name  = html.escape(str(r.get("item_name","")))
+        status     = html.escape(str(r.get("status","")))
+        start_pr   = html.escape(str(r.get("start_price","")))
+        start_ts   = html.escape(str(r.get("start_time","")))
+        end_ts     = html.escape(str(r.get("end_time","")))
+        out.append(
+            f"<tr>"
+            f"<td>#{auction_id}</td>"
+            f"<td>{item_name}</td>"
+            f"<td>{status}</td>"
+            f"<td>${start_pr}</td>"
+            f"<td>{start_ts}</td>"
+            f"<td>{end_ts}</td>"
+            f"</tr>"
+        )
+    out.append('</tbody></table>')
+    return "\n".join(out)
+
 def render_purchases_table(rows):
     if not rows:
         return '<p class="muted">No purchases yet.</p>'
 
-    # Minimal table; all values HTML-escaped
     out = []
     out.append('<table class="tbl">')
     out.append('<thead><tr><th>Auction</th><th>Item</th><th>Final Price</th><th>Ended</th></tr></thead>')
@@ -60,10 +116,11 @@ def render_purchases_table(rows):
     out.append('</tbody></table>')
     return "\n".join(out)
 
+# ------------------------------ CONTROLLER -----------------------------------
+
 def main():
     user, sid = require_valid_session()
 
-    # Not logged in or session expired → bounce to login, expire SID if present
     if not user:
         headers = []
         if sid:
@@ -74,13 +131,15 @@ def main():
     email   = html.escape(user.get("email", ""))
     user_id = user.get("user_id")
 
-    # Open DB just for Purchases (others are placeholders for now)
+    # DB work for live sections
     conn = db()
     try:
+        selling   = fetch_selling(conn, user_id)
         purchases = fetch_purchases(conn, user_id)
     finally:
         conn.close()
 
+    selling_html   = render_selling_table(selling)
     purchases_html = render_purchases_table(purchases)
 
     body = f"""
@@ -91,13 +150,13 @@ def main():
 
   <section>
     <h3>1) Selling</h3>
-    <p class="muted">Coming soon.</p>
+    {selling_html}
   </section>
 
   <section>
     <h3>2) Purchases</h3>
     {purchases_html}
-    <p class="note">Note: End time is computed as start_time + duration (assuming seconds).</p>
+    <p class="note">Note: End time is computed as start_time + duration (seconds).</p>
   </section>
 
   <section>
