@@ -41,6 +41,7 @@ from utils import (
 # - Keep SQL here as simple, reviewable constants.
 # - These are *shape* guides; add columns/aliases as you need for rendering.
 
+# ====== Purpose: Lists the current open auctions that the logged-in user is selling. ======
 SQL_SELLING_OPEN = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           (SELECT MAX(b.amount) FROM Bid b WHERE b.auction_id = a.auction_id) AS current_high
@@ -51,6 +52,7 @@ SQL_SELLING_OPEN = """
                    ORDER BY a.end_time ASC; \
                    """
 
+# ====== Purpose: Shows all closed auctions that this user sold. ======
 SQL_SELLING_SOLD = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           w.amount AS winning_amount,
@@ -72,6 +74,7 @@ SQL_SELLING_SOLD = """
                    ORDER BY a.end_time DESC; \
                    """
 
+# ====== Purpose: Shows auctions that the user won as a buyer. ======
 SQL_PURCHASES_WON = """
                     SELECT a.auction_id, i.item_id, i.title, a.end_time,
                            s.user_name AS seller_name,
@@ -93,6 +96,7 @@ SQL_PURCHASES_WON = """
                     ORDER BY a.end_time DESC; \
                     """
 
+# ====== Purpose: Lists auctions still open that this user has bid on. ======
 SQL_CURRENT_BIDS = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           (SELECT MAX(b2.amount) FROM Bid b2 WHERE b2.auction_id = a.auction_id) AS current_high,
@@ -106,6 +110,7 @@ SQL_CURRENT_BIDS = """
                    ORDER BY a.end_time ASC; \
                    """
 
+# ====== Purpose: Shows auctions the user participated in but lost. ======
 SQL_DIDNT_WIN = """
                 SELECT a.auction_id, i.item_id, i.title, a.end_time,
                        w.amount AS winning_amount,
