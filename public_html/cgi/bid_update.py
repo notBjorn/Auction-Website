@@ -16,6 +16,7 @@ from utils import (
 )
 
 def bad_request(msg: str):
+    # Minimal error page (kept simple for rubric)
     print("Content-Type: text/html\n")
     print(html_page("Bid Error", f"<h1>Bid Error</h1><p>{msg}</p>"))
 
@@ -47,9 +48,9 @@ def main():
     if float(amount_norm) <= 0.0:
         return bad_request("Bid must be greater than 0.00.")
 
-    # 3) Guard: ensure auction exists and is OPEN; forbid self-bidding
+    # 3) Guard: ensure auction exists, is OPEN, and user is not the owner
     row = query_one("""
-                    SELECT a.`status`, i.`seller_id`
+                    SELECT a.`status`, i.`owner_id`
                     FROM `Auctions` a
                              JOIN `Items` i ON i.`item_id` = a.`item_id`
                     WHERE a.`auction_id` = %s
@@ -59,12 +60,12 @@ def main():
         return bad_request("Auction not found.")
     if row.get("status") != "OPEN":
         return bad_request("This auction is closed; you can’t increase your bid.")
-    if int(row.get("seller_id")) == int(uid):
+    if int(row.get("owner_id")) == int(uid):
         return bad_request("You can’t bid on your own auction.")
 
     # 4) Insert new bid row
     affected = exec_write("""
-                          INSERT INTO `Bids` (`auction_id`, `bidder_id`, `amount`, `bid_time`)
+                          INSERT INTO `Bids` (`auction_id`, `bidder_id`, `bid_amount`, `bid_time`)
                           VALUES (%s, %s, %s, NOW())
                           """, (auction_id, uid, amount_norm))
 

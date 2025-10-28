@@ -15,31 +15,31 @@ from utils import (
 # ====== SQL DEFINITIONS =======================================================
 SQL_SELLING_OPEN = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
-                          (SELECT MAX(b.amount) FROM `Bids` b WHERE b.auction_id = a.auction_id) AS current_high
+                          (SELECT MAX(b.bid_amount) FROM `Bids` b WHERE b.auction_id = a.auction_id) AS current_high
                    FROM `Auctions` a
                             JOIN `Items` i ON i.item_id = a.item_id
-                   WHERE i.seller_id = %s
+                   WHERE i.owner_id = %s
                      AND a.status = 'OPEN'
                    ORDER BY a.end_time ASC \
                    """
 
 SQL_SELLING_SOLD = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
-                          w.amount AS winning_amount,
+                          w.bid_amount AS winning_amount,
                           u.user_name AS winner_name
                    FROM `Auctions` a
                             JOIN `Items` i ON i.item_id = a.item_id
                             JOIN (
-                       SELECT b1.auction_id, b1.bidder_id, b1.amount
+                       SELECT b1.auction_id, b1.bidder_id, b1.bid_amount
                        FROM `Bids` b1
                                 JOIN (
-                           SELECT auction_id, MAX(amount) AS max_amt
+                           SELECT auction_id, MAX(bid_amount) AS max_amt
                            FROM `Bids`
                            GROUP BY auction_id
-                       ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.amount
+                       ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.bid_amount
                    ) w ON w.auction_id = a.auction_id
                             JOIN `User` u ON u.user_id = w.bidder_id
-                   WHERE i.seller_id = %s
+                   WHERE i.owner_id = %s
                      AND a.status = 'CLOSED'
                    ORDER BY a.end_time DESC \
                    """
@@ -47,18 +47,18 @@ SQL_SELLING_SOLD = """
 SQL_PURCHASES_WON = """
                     SELECT a.auction_id, i.item_id, i.title, a.end_time,
                            s.user_name AS seller_name,
-                           w.amount AS winning_amount
+                           w.bid_amount AS winning_amount
                     FROM `Auctions` a
                              JOIN `Items` i ON i.item_id = a.item_id
-                             JOIN `User` s ON s.user_id = i.seller_id
+                             JOIN `User` s ON s.user_id = i.owner_id
                              JOIN (
-                        SELECT b1.auction_id, b1.bidder_id, b1.amount
+                        SELECT b1.auction_id, b1.bidder_id, b1.bid_amount
                         FROM `Bids` b1
                                  JOIN (
-                            SELECT auction_id, MAX(amount) AS max_amt
+                            SELECT auction_id, MAX(bid_amount) AS max_amt
                             FROM `Bids`
                             GROUP BY auction_id
-                        ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.amount
+                        ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.bid_amount
                     ) w ON w.auction_id = a.auction_id
                     WHERE a.status = 'CLOSED'
                       AND w.bidder_id = %s
@@ -67,8 +67,8 @@ SQL_PURCHASES_WON = """
 
 SQL_CURRENT_BIDS = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
-                          (SELECT MAX(b2.amount) FROM `Bids` b2 WHERE b2.auction_id = a.auction_id) AS current_high,
-                          (SELECT MAX(b3.amount) FROM `Bids` b3
+                          (SELECT MAX(b2.bid_amount) FROM `Bids` b2 WHERE b2.auction_id = a.auction_id) AS current_high,
+                          (SELECT MAX(b3.bid_amount) FROM `Bids` b3
                            WHERE b3.auction_id = a.auction_id AND b3.bidder_id = %s) AS my_high
                    FROM `Auctions` a
                             JOIN `Items` i ON i.item_id = a.item_id
@@ -82,18 +82,18 @@ SQL_CURRENT_BIDS = """
 
 SQL_DIDNT_WIN = """
                 SELECT a.auction_id, i.item_id, i.title, a.end_time,
-                       w.amount AS winning_amount,
+                       w.bid_amount AS winning_amount,
                        u.user_name AS winner_name
                 FROM `Auctions` a
                          JOIN `Items` i ON i.item_id = a.item_id
                          JOIN (
-                    SELECT b1.auction_id, b1.bidder_id, b1.amount
+                    SELECT b1.auction_id, b1.bidder_id, b1.bid_amount
                     FROM `Bids` b1
                              JOIN (
-                        SELECT auction_id, MAX(amount) AS max_amt
+                        SELECT auction_id, MAX(bid_amount) AS max_amt
                         FROM `Bids`
                         GROUP BY auction_id
-                    ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.amount
+                    ) mx ON mx.auction_id = b1.auction_id AND mx.max_amt = b1.bid_amount
                 ) w ON w.auction_id = a.auction_id
                          JOIN `User` u ON u.user_id = w.bidder_id
                 WHERE a.status = 'CLOSED'
@@ -104,6 +104,7 @@ SQL_DIDNT_WIN = """
                   AND w.bidder_id <> %s
                 ORDER BY a.end_time DESC \
                 """
+
 
 # ====== RENDER HELPERS =======================================================
 
