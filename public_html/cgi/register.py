@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# =============================================================================
+# CS370 Auction Website — register.py
+# Renders a registration form, validates input, creates a new user record,
+# and redirects to the login page on success.
+# =============================================================================
+
+# ====== Imports / Setup ======================================================
 import cgitb; cgitb.enable()
 import os, html
 
@@ -10,6 +17,7 @@ from utils import (
     db, sha256_hex, validate_email, normalize_name_from_email
 )
 
+# ====== View: Registration Form =============================================
 def render_form(msg: str = "", values: dict | None = None) -> str:
     v = values or {}
     note = f'<p style="color:red;">{html.escape(msg)}</p>' if msg else ""
@@ -32,22 +40,28 @@ def render_form(msg: str = "", values: dict | None = None) -> str:
     <p>Already have an account? <a href="{SITE_ROOT}cgi/login.py">Log in</a>.</p>
     """
 
+# ====== Controller: Main Request Handler =====================================
 def main():
+    """
+    GET  -> render registration form.
+    POST -> validate input, insert user (if email unused), redirect to login.
+    """
     method = (os.environ.get("REQUEST_METHOD") or "GET").upper()
 
+    # ----- GET: show the form -------------------------------------------------
     if method == "GET":
         print("Content-Type: text/html\n")
         print(html_page("Register", render_form()))
         return
 
-    # POST
+    # ----- POST: parse form ---------------------------------------------------
     form = parse_urlencoded(read_post_body())
     user_name = (form.get("user_name") or "").strip()
     email     = (form.get("email") or "").strip().lower()
     pw        = form.get("password") or ""
     confirm   = form.get("confirm") or ""
 
-    # Server-side validation
+    # ====== Validation: Server-side checks ===================================
     if not email or not pw or not confirm:
         print("Content-Type: text/html\n")
         print(html_page("Register", render_form("All fields are required.", form)))
@@ -69,7 +83,7 @@ def main():
 
     pw_hash = sha256_hex(pw)
 
-    # Insert user if email not taken
+    # ====== Model: Insert user if email not taken =============================
     try:
         cn = db()
         with cn.cursor() as cur:
@@ -85,6 +99,7 @@ def main():
             )
             cn.commit()
     except Exception as e:
+        # ====== Error View: Database Error ===================================
         print("Content-Type: text/html\n")
         print(html_page("Registration Error", f"<h1>Database Error</h1><pre>{html.escape(str(e))}</pre>"))
         return
@@ -94,8 +109,9 @@ def main():
         except Exception:
             pass
 
-    # Success → login page
+    # ====== Redirect: Success -> Login =======================================
     redirect(f"{SITE_ROOT}cgi/login.py")
 
+# ====== Entry Point ==========================================================
 if __name__ == "__main__":
     main()

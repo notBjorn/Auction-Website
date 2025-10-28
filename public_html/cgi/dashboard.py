@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+# =============================================================================
+# CS370 Auction Website — dashboard.py
+# Displays the logged-in user's dashboard. Requires a valid session.
+# If the session is missing or expired, redirect to the login page and
+# expire the SID cookie when present.
+# =============================================================================
+
+# ====== Imports / Setup ======================================================
 import cgitb; cgitb.enable()
 import html
 
@@ -8,10 +16,11 @@ from utils import (
     SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session
 )
 
+# ====== Controller: Main Request Handler =====================================
 def main():
     user, sid = require_valid_session()
 
-    # Not logged in or timed out
+    # ----- Not logged in or timed out ----------------------------------------
     if not user:
         headers = []
         if sid:
@@ -19,6 +28,7 @@ def main():
         redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
         return
 
+    # ----- Valid session: render dashboard -----------------------------------
     email = html.escape(user.get("email", ""))
     print("Content-Type: text/html\n")
     print(html_page("Dashboard", f"""
@@ -34,5 +44,6 @@ def main():
 </main>
 """))
 
+# ====== Entry Point ==========================================================
 if __name__ == "__main__":
     main()
