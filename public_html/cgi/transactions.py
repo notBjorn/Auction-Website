@@ -106,12 +106,15 @@ SQL_DIDNT_WIN = """
                 ORDER BY a.end_time DESC \
                 """
 
-# ====== RENDER HELPERS ========================================================
+# ====== RENDER HELPERS =======================================================
 
 def _fmt_money(val):
-    if val is None: return "—"
-    try: return f"${float(val):.2f}"
-    except: return html.escape(str(val))
+    if val is None:
+        return "—"
+    try:
+        return f"${float(val):.2f}"
+    except Exception:
+        return html.escape(str(val))
 
 def _fmt_dt(dt):
     # utils/db may return Python datetime or str; handle both
@@ -124,8 +127,8 @@ def render_nav():
     return f"""
 <nav>
   <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
+  <a href="{SITE_ROOT}cgi/transactions.py"><strong>Transactions</strong></a>
   <a href="{SITE_ROOT}cgi/logout.py">Log Out</a>
-  <strong>Transactions</strong>
 </nav>
 """.strip()
 

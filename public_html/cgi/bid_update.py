@@ -48,7 +48,7 @@ def main():
     if float(amount_norm) <= 0.0:
         return bad_request("Bid must be greater than 0.00.")
 
-    # 3) Optional: ensure auction exists and is OPEN
+    # 3) Guard: ensure auction exists and is OPEN; forbid self-bidding
     row = query_one("""
                     SELECT a.status, i.seller_id
                     FROM Auction a
@@ -63,8 +63,7 @@ def main():
     if int(row.get("seller_id")) == int(uid):
         return bad_request("You can’t bid on your own auction.")
 
-    # 4) Insert (or treat as “raise max”) — simplest model: insert a new bid row
-    #    If you later switch to a “max proxy” design, update that table here.
+    # 4) Insert new bid row (simple model; proxy logic could replace this later)
     affected = exec_write("""
                           INSERT INTO Bid (auction_id, bidder_id, amount, bid_time)
                           VALUES (%s, %s, %s, NOW())
