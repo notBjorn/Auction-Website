@@ -165,9 +165,11 @@ def render_money(x):
     except Exception:
         return html.escape(str(x))
 
-def render_selling_table(rows):
+def render_selling_table(rows, empty_msg="You are not selling anything yet."):
+    """Reusable render for both active and sold tables."""
     if not rows:
-        return '<p class="muted">You are not selling anything yet.</p>'
+        return f'<p class="muted">{html.escape(empty_msg)}</p>'
+
     out = []
     out.append('<table class="tbl">')
     out.append('<thead><tr>'
@@ -187,6 +189,7 @@ def render_selling_table(rows):
         )
     out.append('</tbody></table>')
     return "\n".join(out)
+
 
 def render_purchases_table(rows):
     if not rows:
@@ -307,9 +310,9 @@ def main():
   <section>
     <h3>1) Selling</h3>
     <h4>Active</h4>
-    {render_selling_table(selling_active)}
+    {render_selling_table(selling_active, "You are not selling anything yet.")}
     <h4>Sold</h4>
-    {render_selling_table(selling_sold)}
+    {render_selling_table(selling_sold, "You have not sold anything yet.")}
   </section>
 
   <section>
