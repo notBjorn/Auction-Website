@@ -241,7 +241,8 @@ def main():
 #   - Optional: also show "Your Max" if you add that to the SQL.
 #   - Empty state if none.
 
-# ====== HTML Structure (keep valid, minimal, and semantic) ===================
+# ====== HTML Structure (For testing only, this needs to be rendered dynamically above) ===================
+# ====== Delete this section once 2 & 3 function properly =======
 body = f"""
 <h1>My Transactions</h1>
 <nav>
