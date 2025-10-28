@@ -3,7 +3,7 @@
 
 # =============================================================================
 # CS370 Auction Website — transactions.py
-# Selling + Purchases + Current Bids are LIVE. Didn’t Win is a placeholder.
+# Selling + Purchases + Current Bids + Didn't Win (all LIVE).
 # =============================================================================
 
 import cgitb; cgitb.enable()
@@ -60,10 +60,6 @@ def fetch_purchases(conn, user_id):
         return cur.fetchall()
 
 def fetch_current_bids(conn, user_id):
-    """
-    Current Bids = running auctions where this user has bid.
-    Shows current leading price, your max, and whether you are leading.
-    """
     sql = """
           SELECT
               A.auction_id,
@@ -93,6 +89,49 @@ def fetch_current_bids(conn, user_id):
           """
     with conn.cursor() as cur:
         cur.execute(sql, (user_id,))
+        return cur.fetchall()
+
+def fetch_didnt_win(conn, user_id):
+    """
+    Auctions that ended where the user bid (has a user_max) but is NOT among
+    the top bidders (i.e., not tied for the highest amount).
+    """
+    sql = """
+          SELECT
+              A.auction_id,
+              I.item_name,
+              mb.max_amount      AS final_price,
+              u.user_max         AS your_max,
+              DATE_ADD(A.start_time, INTERVAL A.duration SECOND) AS end_time
+          FROM Auctions A
+                   JOIN Items I ON I.item_id = A.item_id
+              -- user's participation & their max on each auction
+                   JOIN (
+              SELECT auction_id, MAX(bid_amount) AS user_max
+              FROM Bids
+              WHERE bidder_id = %s
+              GROUP BY auction_id
+          ) u ON u.auction_id = A.auction_id
+              -- overall max on each auction
+                   JOIN (
+              SELECT auction_id, MAX(bid_amount) AS max_amount
+              FROM Bids
+              GROUP BY auction_id
+          ) mb ON mb.auction_id = A.auction_id
+          WHERE A.status = 'ended'
+            -- exclude cases where THIS user is one of the top bidders (tie-safe)
+            AND NOT EXISTS (
+              SELECT 1
+              FROM Bids tb
+              WHERE tb.auction_id = A.auction_id
+                AND tb.bid_amount = mb.max_amount
+                AND tb.bidder_id = %s
+          )
+          ORDER BY end_time DESC, A.auction_id DESC
+              LIMIT 200 \
+          """
+    with conn.cursor() as cur:
+        cur.execute(sql, (user_id, user_id))
         return cur.fetchall()
 
 # --------------------------- RENDER HELPERS ----------------------------------
@@ -163,7 +202,6 @@ def render_current_bids_table(rows):
         your_max   = r.get('user_max')
         is_leading = bool(r.get('is_leading'))
 
-        # compute a minimal allowed next bid on the server
         try:
             base = Decimal(current_px or 0)
         except Exception:
@@ -190,6 +228,29 @@ def render_current_bids_table(rows):
     out.append('</tbody></table>')
     return "\n".join(out)
 
+def render_didnt_win_table(rows):
+    if not rows:
+        return '<p class="muted">Nothing here yet — you haven’t lost any auctions you bid on.</p>'
+
+    out = []
+    out.append('<table class="tbl">')
+    out.append('<thead><tr>'
+               '<th>Auction</th><th>Item</th>'
+               '<th>Final Price</th><th>Your Max</th><th>Ended</th>'
+               '</tr></thead><tbody>')
+    for r in rows:
+        out.append(
+            f"<tr>"
+            f"<td>#{html.escape(str(r.get('auction_id','')))}</td>"
+            f"<td>{html.escape(str(r.get('item_name','')))}</td>"
+            f"<td>${render_money(r.get('final_price'))}</td>"
+            f"<td>${render_money(r.get('your_max'))}</td>"
+            f"<td>{html.escape(str(r.get('end_time','')))}</td>"
+            f"</tr>"
+        )
+    out.append('</tbody></table>')
+    return "\n".join(out)
+
 # ------------------------------ CONTROLLER -----------------------------------
 
 def main():
@@ -209,6 +270,7 @@ def main():
         selling      = fetch_selling(conn, user_id)
         purchases    = fetch_purchases(conn, user_id)
         current_bids = fetch_current_bids(conn, user_id)
+        didnt_win    = fetch_didnt_win(conn, user_id)
     finally:
         conn.close()
 
@@ -236,7 +298,7 @@ def main():
 
   <section>
     <h3>4) Didn’t Win</h3>
-    <p class="muted">Coming soon.</p>
+    {render_didnt_win_table(didnt_win)}
   </section>
 
   <nav style="margin-top:1rem;">
