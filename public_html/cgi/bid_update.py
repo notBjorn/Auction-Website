@@ -45,6 +45,8 @@ def main():
     amount_norm = to_decimal_str(amount_raw)
     if amount_norm is None:
         return bad_request("Please enter a valid amount (e.g., 12.34).")
+    if float(amount_norm) <= 0.0:
+        return bad_request("Bid must be greater than 0.00.")
 
     # 3) Optional: ensure auction exists and is OPEN
     row = query_one("""
@@ -58,6 +60,8 @@ def main():
         return bad_request("Auction not found.")
     if row.get("status") != "OPEN":
         return bad_request("This auction is closed; you can’t increase your bid.")
+    if int(row.get("seller_id")) == int(uid):
+        return bad_request("You can’t bid on your own auction.")
 
     # 4) Insert (or treat as “raise max”) — simplest model: insert a new bid row
     #    If you later switch to a “max proxy” design, update that table here.

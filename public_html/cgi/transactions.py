@@ -14,7 +14,6 @@ from utils import (
 )
 
 # ====== SQL DEFINITIONS =======================================================
-
 SQL_SELLING_OPEN = """
                    SELECT a.auction_id, i.item_id, i.title, a.end_time,
                           (SELECT MAX(b.amount) FROM Bid b WHERE b.auction_id = a.auction_id) AS current_high
@@ -22,7 +21,7 @@ SQL_SELLING_OPEN = """
                             JOIN Item i ON i.item_id = a.item_id
                    WHERE i.seller_id = %s
                      AND a.status = 'OPEN'
-                   ORDER BY a.end_time ASC; \
+                   ORDER BY a.end_time ASC \
                    """
 
 SQL_SELLING_SOLD = """
@@ -43,7 +42,7 @@ SQL_SELLING_SOLD = """
                             JOIN User u ON u.user_id = w.bidder_id
                    WHERE i.seller_id = %s
                      AND a.status = 'CLOSED'
-                   ORDER BY a.end_time DESC; \
+                   ORDER BY a.end_time DESC \
                    """
 
 SQL_PURCHASES_WON = """
@@ -64,7 +63,7 @@ SQL_PURCHASES_WON = """
                     ) w ON w.auction_id = a.auction_id
                     WHERE a.status = 'CLOSED'
                       AND w.bidder_id = %s
-                    ORDER BY a.end_time DESC; \
+                    ORDER BY a.end_time DESC \
                     """
 
 SQL_CURRENT_BIDS = """
@@ -79,7 +78,7 @@ SQL_CURRENT_BIDS = """
                        SELECT 1 FROM Bid bx
                        WHERE bx.auction_id = a.auction_id AND bx.bidder_id = %s
                    )
-                   ORDER BY a.end_time ASC; \
+                   ORDER BY a.end_time ASC \
                    """
 
 SQL_DIDNT_WIN = """
@@ -104,7 +103,7 @@ SQL_DIDNT_WIN = """
                     WHERE me.auction_id = a.auction_id AND me.bidder_id = %s
                 )
                   AND w.bidder_id <> %s
-                ORDER BY a.end_time DESC; \
+                ORDER BY a.end_time DESC \
                 """
 
 # ====== RENDER HELPERS ========================================================
