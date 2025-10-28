@@ -3,36 +3,41 @@
 
 # =============================================================================
 # CS370 Auction Website — transactions.py (Minimal Working Version)
-# Purpose: Just confirm that navigation and CGI execution are working.
+# Confirms navigation + session handling. No DB access yet.
 # =============================================================================
 
-import cgitb; cgitb.enable()  # show errors in browser
-from utils import html_page, require_valid_session, db
+import cgitb; cgitb.enable()
+import html
+from utils import SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session
 
 def main():
-    # --- Step 1: Validate user session ---
-    user_id, email = require_valid_session()  # redirects to login if invalid
+    user, sid = require_valid_session()
 
-    # --- Step 2: Connect to DB (optional for now) ---
-    connection = db()
-    cursor = connection.cursor()
+    # Not logged in or session expired → bounce to login, expire SID if present
+    if not user:
+        headers = []
+        if sid:
+            headers.append(expire_cookie("SID", path=SITE_ROOT))
+        redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
+        return
 
-    # --- Step 3: Minimal HTML output ---
-    html = f"""
-    <h1>Transactions</h1>
-    <p>Welcome, {email}!</p>
-    <p>This is the minimal working transactions page.</p>
-    <p>If you see this, navigation and CGI execution are working correctly.</p>
-    <p><a href="/~cafcode/dashboard.py">Back to Dashboard</a></p>
-    """
+    # Logged in → minimal page
+    email = html.escape(user.get("email", ""))
+    print("Content-Type: text/html\n")
+    print(html_page("Transactions", f"""
+<header><h1>CS370 Auction Portal</h1></header>
+<main>
+  <h2>Transactions</h2>
+  <p>Welcome, {email}!</p>
+  <p>If you can see this page, routing & session auth are working.</p>
+  <nav>
+    <ul>
+      <li><a href="{SITE_ROOT}cgi/dashboard.py">Back to Dashboard</a></li>
+      <li><a href="{SITE_ROOT}cgi/logout.py">Log out</a></li>
+    </ul>
+  </nav>
+</main>
+"""))
 
-    # --- Step 4: Output the page ---
-    print(html_page("Transactions", html))
-
-    # --- Step 5: Clean up ---
-    cursor.close()
-    connection.close()
-
-# Standard CGI entry point
 if __name__ == "__main__":
     main()
