@@ -2,71 +2,75 @@
 # -*- coding: utf-8 -*-
 
 # =============================================================================
-# CS370 Auction Website — update_bid.py
-# Purpose: Handle raising/placing a bid for an OPEN auction (POST only).
-# Requirements:
-#   - Valid session (own session table), no third-party auth.
-#   - CSRF protection (token verified server-side).
-#   - MySQL backend; single transaction to avoid race conditions.
-#   - Enforce rules: not seller, auction OPEN (time/status), bid >= min acceptable.
-# Output:
-#   - On success: HTML redirect back to auction detail (or ?return_to=...).
-#   - On failure: HTML error page stating the reason and a link back.
+# CS370 Auction Website — bid_update.py
+# Handles POST from "Increase Max Bid" form, then redirects to transactions.py
 # =============================================================================
 
-# ===== Imports (kept minimal) ================================================
-# import cgitb; cgitb.enable()
-# from utils import require_valid_session, verify_csrf, read_post_body, html_page, redirect
-# from utils import query_one, exec_write, db, to_decimal_str, SITE_ROOT
+import cgitb; cgitb.enable()
+import re
 
-# ===== Expected POST fields ==================================================
-#   auction_id : int (required)
-#   amount     : decimal string (required) -> normalized via to_decimal_str()
-#   csrf       : token (required)
-#   return_to  : optional URL to redirect after success
+from utils import (
+    SITE_ROOT, html_page, require_valid_session,
+    read_post_body, parse_urlencoded, to_decimal_str,
+    query_one, exec_write, redirect, expire_cookie
+)
 
-# ===== SQL touchpoints (adjust names to your schema) =========================
-# BEGIN;
-# SELECT a.auction_id, a.item_id, a.end_time, a.status,
-#        a.current_price, a.min_increment, a.starting_price,
-#        i.seller_id
-#   FROM Auction a
-#   JOIN Item i ON i.item_id = a.item_id
-#  WHERE a.auction_id = %s
-#  FOR UPDATE;
-#
-# -- Validate: status/time OPEN, user != seller, amount >=
-# --   GREATEST(starting_price, current_price + min_increment)
-#
-# INSERT INTO Bid(auction_id, bidder_id, amount, bid_time)
-# VALUES (%s, %s, %s, NOW());
-#
-# UPDATE Auction
-#    SET current_price = %s,
-#        high_bidder_id = %s,
-#        last_bid_time = NOW()
-#  WHERE auction_id = %s;
-# COMMIT;
+def bad_request(msg: str):
+    # Emit a simple error page with proper headers so you see the problem
+    print("Content-Type: text/html\n")
+    print(html_page("Bid Error", f"<h1>Bid Error</h1><p>{msg}</p>"))
 
-# ===== Controller sketch =====================================================
-# def main():
-#   uid = require_valid_session()
-#   form = read_post_body()  # x-www-form-urlencoded -> dict
-#   auction_id = int(form.get('auction_id', 0))
-#   amount_str = form.get('amount', '')
-#   csrf_token = form.get('csrf', '')
-#   return_to = form.get('return_to') or f"{SITE_ROOT}cgi/auction.py?auction_id={auction_id}"
-#
-#   verify_csrf(uid, csrf_token)
-#   amount = to_decimal_str(amount_str)  # raise on invalid
-#
-#   with db() as conn:
-#       cur = conn.cursor()
-#       # SELECT ... FOR UPDATE (see SQL above), validate rules
-#       # INSERT Bid + UPDATE Auction
-#       conn.commit()
-#
-#   redirect(return_to)
-#
-# if __name__ == "__main__":
-#   main()
+def main():
+    # 1) Session check
+    user, sid = require_valid_session()
+    if not user:
+        headers = []
+        if sid:
+            headers.append(expire_cookie("SID", path=SITE_ROOT))
+        redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
+        return
+    uid = user["user_id"]
+
+    # 2) Read & validate POST
+    body = read_post_body()
+    form = parse_urlencoded(body)
+
+    auction_id_raw = (form.get("auction_id") or "").strip()
+    amount_raw     = (form.get("amount") or "").strip()
+
+    if not re.fullmatch(r"\d+", auction_id_raw):
+        return bad_request("Missing or invalid auction_id.")
+    auction_id = int(auction_id_raw)
+
+    amount_norm = to_decimal_str(amount_raw)
+    if amount_norm is None:
+        return bad_request("Please enter a valid amount (e.g., 12.34).")
+
+    # 3) Optional: ensure auction exists and is OPEN
+    row = query_one("""
+                    SELECT a.status, i.seller_id
+                    FROM Auction a
+                             JOIN Item i ON i.item_id = a.item_id
+                    WHERE a.auction_id = %s
+                        LIMIT 1
+                    """, (auction_id,))
+    if not row:
+        return bad_request("Auction not found.")
+    if row.get("status") != "OPEN":
+        return bad_request("This auction is closed; you can’t increase your bid.")
+
+    # 4) Insert (or treat as “raise max”) — simplest model: insert a new bid row
+    #    If you later switch to a “max proxy” design, update that table here.
+    affected = exec_write("""
+                          INSERT INTO Bid (auction_id, bidder_id, amount, bid_time)
+                          VALUES (%s, %s, %s, NOW())
+                          """, (auction_id, uid, amount_norm))
+
+    if affected <= 0:
+        return bad_request("Could not record your bid. Please try again.")
+
+    # 5) Redirect back to transactions
+    redirect(SITE_ROOT + "cgi/transactions.py")
+
+if __name__ == "__main__":
+    main()
