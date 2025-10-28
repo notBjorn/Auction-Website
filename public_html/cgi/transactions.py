@@ -21,8 +21,10 @@
 
 # ====== Imports / Site Utilities (used by our project) =======================
 import cgitb; cgitb.enable()
-from utils import html_page, require_valid_session, SITE_ROOT
-# (Keep imports minimal; this file only reads and renders.)
+from utils import (
+    html_page, require_valid_session, SITE_ROOT,
+    redirect, expire_cookie
+)
 
 
 # ====== Minimal Schema Touchpoints (names may differ; adjust as needed) =====
@@ -133,8 +135,8 @@ def main():
 body = f"""
 <h1>My Transactions</h1>
 <nav>
-    <a href="{SITE_ROOT}index.html">Home</a>
     <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
+    <a href="{SITE_ROOT}cgi/logout.py">Log Out</a>
     <strong>Transactions</strong>
 </nav>
 
@@ -156,15 +158,16 @@ body = f"""
     <p>No current bids yet.</p>
 </section>
 
-<section id="didn't-win">
+<section id="didnt-win">
     <h2>Didn't Win</h2>
     <p>No lost auctions yet.</p>
 </section>
 """
 
 # 3) Emit full HTML5 via our helper (prints headers + markup)
-print(html_page)("My Transactions", body))
-=============================================================================
+print("Content-Type: text/html\n")
+print(html_page("My Transactions", body))
+# =============================================================================
 
 #   4) No filters/pagination required by rubric. Keep markup simple and valid.
 #      Keep all dynamic values HTML-escaped. No inline JS needed.
