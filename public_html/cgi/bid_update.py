@@ -16,7 +16,6 @@ from utils import (
 )
 
 def bad_request(msg: str):
-    # Emit a simple error page with proper headers so you see the problem
     print("Content-Type: text/html\n")
     print(html_page("Bid Error", f"<h1>Bid Error</h1><p>{msg}</p>"))
 
@@ -50,10 +49,10 @@ def main():
 
     # 3) Guard: ensure auction exists and is OPEN; forbid self-bidding
     row = query_one("""
-                    SELECT a.status, i.seller_id
-                    FROM Auctions a
-                             JOIN Item i ON i.item_id = a.item_id
-                    WHERE a.auction_id = %s
+                    SELECT a.`status`, i.`seller_id`
+                    FROM `Auctions` a
+                             JOIN `Items` i ON i.`item_id` = a.`item_id`
+                    WHERE a.`auction_id` = %s
                         LIMIT 1
                     """, (auction_id,))
     if not row:
@@ -63,9 +62,9 @@ def main():
     if int(row.get("seller_id")) == int(uid):
         return bad_request("You can’t bid on your own auction.")
 
-    # 4) Insert new bid row (simple model; proxy logic could replace this later)
+    # 4) Insert new bid row
     affected = exec_write("""
-                          INSERT INTO Bids (auction_id, bidder_id, amount, bid_time)
+                          INSERT INTO `Bids` (`auction_id`, `bidder_id`, `amount`, `bid_time`)
                           VALUES (%s, %s, %s, NOW())
                           """, (auction_id, uid, amount_norm))
 
