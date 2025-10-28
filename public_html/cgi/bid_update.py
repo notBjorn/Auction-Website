@@ -51,7 +51,7 @@ def main():
     # 3) Guard: ensure auction exists and is OPEN; forbid self-bidding
     row = query_one("""
                     SELECT a.status, i.seller_id
-                    FROM Auction a
+                    FROM Auctions a
                              JOIN Item i ON i.item_id = a.item_id
                     WHERE a.auction_id = %s
                         LIMIT 1
@@ -65,7 +65,7 @@ def main():
 
     # 4) Insert new bid row (simple model; proxy logic could replace this later)
     affected = exec_write("""
-                          INSERT INTO Bid (auction_id, bidder_id, amount, bid_time)
+                          INSERT INTO Bids (auction_id, bidder_id, amount, bid_time)
                           VALUES (%s, %s, %s, NOW())
                           """, (auction_id, uid, amount_norm))
 
