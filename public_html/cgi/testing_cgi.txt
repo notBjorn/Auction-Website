@@ -1,0 +1,35 @@
+Project: Display Transactions
+Files: transactions.py, bid_update.py
+Team: Caffeinated Coders
+
+Test Accounts
+
+User: Seller (owns auctions)
+Username: seller@example.com
+Password: seller123
+
+User: Winner (won an auction)
+Username: winner@example.com
+Password: winner123
+
+User: Loser (bid but lost)
+Username: loser@example.com
+Password: loser123
+
+User: Bidder (currently bidding)
+Username: bidder@example.com
+Password: bidder123
+
+Test Scenarios
+
+Log in as seller@example.com
+The “Selling” section lists the seller’s active and closed auctions.
+
+Log in as winner@example.com
+The “Purchases” section lists auctions where this user had the highest bid.
+
+Log in as loser@example.com
+Items appear under “Didn’t Win.”
+
+Log in as bidder@example.com
+“Current Bids” shows open auctions this user is bidding on.
