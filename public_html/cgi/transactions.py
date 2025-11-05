@@ -289,6 +289,7 @@ def main():
 
     email   = html.escape(user.get("email", ""))
     user_id = user.get("user_id")
+    user_name = html.escape(user.get("user_name", ""))
 
     conn = db()
     try:
@@ -305,7 +306,7 @@ def main():
 <header><h1>CS370 Auction Portal</h1></header>
 <main>
   <h2>Transactions</h2>
-  <p>Welcome, {email}!</p>
+  <p>Welcome, {user_name}!</p>
 
   <section>
     <h3>1) Selling</h3>
