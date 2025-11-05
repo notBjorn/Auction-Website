@@ -38,6 +38,7 @@ def main():
   <nav>
     <ul>
       <li><a href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a></li>
+      <li><a href="{SITE_ROOT}cgi/sell.py">Sell an Item</a></li>
       <li><a href="{SITE_ROOT}cgi/logout.py">Log out</a></li>
     </ul>
   </nav>
