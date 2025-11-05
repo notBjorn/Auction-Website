@@ -34,38 +34,49 @@ def main():
     user_name = html.escape(user.get("user_name", ""))
     print("Content-Type: text/html\n")
     print(html_page("Dashboard", f"""
+<!-- ===========================
+     DASHBOARD LAYOUT (LEFT SIDEBAR)
+     =========================== -->
+
 <style>
+  /* ---------- Color and layout variables ---------- */
   :root {{
-    --brand: #0a58ca;
-    --brand-600: #0947a5;
-    --bg: #f6f7fb;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --card: #ffffff;
+    --brand: #0a58ca;          /* Primary blue for links/buttons */
+    --brand-600: #0947a5;      /* Slightly darker blue for hover states */
+    --bg: #f6f7fb;             /* Light gray background for the main page */
+    --text: #1f2937;           /* Default text color (dark gray) */
+    --muted: #6b7280;          /* Secondary text color (lighter gray) */
+    --card: #ffffff;           /* White background for content cards */
   }}
+
   * {{ box-sizing: border-box; }}
   html, body {{ height: 100%; }}
+
+  /* ---------- Base layout using CSS Grid ---------- */
   body {{
     margin: 0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     color: var(--text);
     background: var(--bg);
     display: grid;
-    grid-template-columns: 260px 1fr;
-    min-height: 100vh;
+    grid-template-columns: 260px 1fr;   /* Left column for sidebar, right for main content */
+    min-height: 100vh;                  /* Full screen height */
   }}
 
-  /* Sidebar */
+  /* ---------- Sidebar styling ---------- */
   aside {{
-    background: #0b1736;
-    color: #eef2ff;
+    background: #0b1736;                /* Dark navy background for contrast */
+    color: #eef2ff;                     /* Light text color for readability */
     padding: 1.25rem 1rem 1.5rem;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1rem;                          /* Space between sidebar sections */
   }}
+
+  /* ---------- Brand (site name + subtitle) ---------- */
   .brand {{
-    display: grid; gap: .25rem;
+    display: grid;
+    gap: .25rem;
   }}
   .brand h1 {{
     margin: 0;
@@ -79,22 +90,30 @@ def main():
     font-size: .9rem;
   }}
 
+  /* ---------- User info card in sidebar ---------- */
   .user {{
-    background: rgba(255,255,255,.06);
+    background: rgba(255,255,255,.06);  /* Slightly transparent overlay */
     border: 1px solid rgba(255,255,255,.08);
     border-radius: .75rem;
     padding: .75rem .9rem;
   }}
   .user .hello {{ margin: 0; font-weight: 600; }}
-  .user .meta {{ margin: .15rem 0 0; color: #cbd5ff; font-size: .85rem; word-break: break-word; }}
+  .user .meta {{
+    margin: .15rem 0 0;
+    color: #cbd5ff;
+    font-size: .85rem;
+    word-break: break-word;
+  }}
 
+  /* ---------- Sidebar navigation links ---------- */
   nav.sidebar {{
     display: grid;
     gap: .5rem;
     margin-top: .25rem;
   }}
   nav.sidebar a {{
-    display: flex; align-items: center; gap: .5rem;
+    display: flex; align-items: center;
+    gap: .5rem;
     padding: .65rem .75rem;
     border-radius: .6rem;
     text-decoration: none;
@@ -113,22 +132,33 @@ def main():
     color: #fff;
   }}
 
-  /* Main area */
+  /* ---------- Top bar for main content ---------- */
   header.top {{
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 1rem 1.25rem;
     background: var(--card);
     border-bottom: 1px solid #e5e7eb;
   }}
   header.top .title {{
-    margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--brand-600);
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--brand-600);
   }}
   header.top a.logout {{
-    text-decoration: none; color: #6b7280; font-weight: 600;
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 600;
   }}
+
+  /* ---------- Main content area ---------- */
   main.content {{
     padding: 1.25rem;
   }}
+
+  /* Card styling for the main dashboard content */
   .card {{
     background: var(--card);
     border: 1px solid #e5e7eb;
@@ -136,27 +166,33 @@ def main():
     padding: 1rem 1.1rem;
   }}
 
-  /* Responsive: collapse sidebar on small screens */
+  /* ---------- Responsive layout for smaller screens ---------- */
   @media (max-width: 760px) {{
     body {{
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-columns: 1fr;     /* Collapse into single column */
+      grid-template-rows: auto 1fr;   /* Sidebar on top, content below */
     }}
     aside {{ grid-row: 1; }}
   }}
 </style>
 
+<!-- ========== HTML Structure ========== -->
+
+<!-- Sidebar -->
 <aside>
+  <!-- Portal Title + Subtitle -->
   <div class="brand" role="banner">
     <h1>CS370 Auction Portal</h1>
     <div class="sub">Dashboard</div>
   </div>
 
+  <!-- Logged-in User Info -->
   <section class="user" aria-label="User">
     <p class="hello">Welcome, {user_name or "bidder"}</p>
     <p class="meta">{email}</p>
   </section>
 
+  <!-- Navigation Links -->
   <nav class="sidebar" aria-label="Main navigation">
     <a class="primary" href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a>
     <a href="{SITE_ROOT}cgi/bid.py">Bid on an Item</a>
@@ -165,12 +201,15 @@ def main():
   </nav>
 </aside>
 
+<!-- Right-side Main Area -->
 <div>
+  <!-- Top Bar above main content -->
   <header class="top">
     <h2 class="title">Dashboard</h2>
     <a class="logout" href="{SITE_ROOT}cgi/logout.py">Log out</a>
   </header>
 
+  <!-- Main content section -->
   <main class="content" role="main">
     <section class="card">
       <p>This is your dashboard. Choose an action from the left.</p>
@@ -178,6 +217,7 @@ def main():
   </main>
 </div>
 """))
+
 
 
 # ====== Entry Point ==========================================================
