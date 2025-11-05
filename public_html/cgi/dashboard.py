@@ -20,6 +20,7 @@ from utils import (
 def main():
     user, sid = require_valid_session()
 
+
     # ----- Not logged in or timed out ----------------------------------------
     if not user:
         headers = []
@@ -30,11 +31,12 @@ def main():
 
     # ----- Valid session: render dashboard -----------------------------------
     email = html.escape(user.get("email", ""))
+    user_name = html.escape(user.get("user_name", ""))
     print("Content-Type: text/html\n")
     print(html_page("Dashboard", f"""
 <header><h1>CS370 Auction Portal</h1></header>
 <main>
-  <h2>Welcome, {email}</h2>
+  <h2>Welcome, {user_name}</h2>
   <nav>
     <ul>
       <li><a href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a></li>
