@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CS370 Auction Portal</title>
+  <style>
+    /* === Basic layout placeholders === */
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header, nav, main, footer {
+      padding: 1rem;
+      border-bottom: 1px solid #ccc;
+    }
+    nav a {
+      margin-right: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- === HEADER === -->
+  <header>
+    <h1>CS370 Auction Portal</h1>
+    <p>Welcome, <!-- CGI: username -->bidder</p>
+  </header>
+
+  <!-- === NAVIGATION === -->
+  <nav>
+    <!-- Replace these with real links -->
+    <a href="dashboard.py">Dashboard</a>
+    <a href="transactions.py">Your Transactions</a>
+    <a href="bid_item.py">Bid on an Item</a>
+    <a href="sell_item.py">Sell an Item</a>
+    <a href="logout.py">Log Out</a>
+  </nav>
+
+  <!-- === MAIN CONTENT AREA === -->
+  <main>
+    <!-- Page title -->
+    <h2><!-- CGI: Page Title -->Dashboard</h2>
+
+    <!-- Quick Actions -->
+    <section id="quick-actions">
+      <!-- CGI: Buttons or links for user actions -->
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats">
+      <!-- CGI: Active auctions, bids, items selling -->
+    </section>
+
+    <!-- Panels or tables -->
+    <section id="content">
+      <!-- CGI: Dynamic content goes here -->
+    </section>
+  </main>
+
+  <!-- === FOOTER === -->
+  <footer>
+    © <!-- CGI: year -->2025 · CS370 Auction Portal
+  </footer>
+
+</body>
+</html>
