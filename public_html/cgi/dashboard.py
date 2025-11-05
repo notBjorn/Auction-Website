@@ -34,19 +34,151 @@ def main():
     user_name = html.escape(user.get("user_name", ""))
     print("Content-Type: text/html\n")
     print(html_page("Dashboard", f"""
-<header><h1>CS370 Auction Portal</h1></header>
-<main>
-  <h2>Welcome, {user_name}</h2>
-  <nav>
-    <ul>
-      <li><a href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a></li>
-      <li><a href="{SITE_ROOT}cgi/bid.py">Bid on an Item<.a></li>
-      <li><a href="{SITE_ROOT}cgi/sell.py">Sell an Item</a></li>
-      <li><a href="{SITE_ROOT}cgi/logout.py">Log out</a></li>
-    </ul>
+<style>
+  :root {{
+    --brand: #0a58ca;
+    --brand-600: #0947a5;
+    --bg: #f6f7fb;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --card: #ffffff;
+  }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ height: 100%; }}
+  body {{
+    margin: 0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    min-height: 100vh;
+  }}
+
+  /* Sidebar */
+  aside {{
+    background: #0b1736;
+    color: #eef2ff;
+    padding: 1.25rem 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }}
+  .brand {{
+    display: grid; gap: .25rem;
+  }}
+  .brand h1 {{
+    margin: 0;
+    font-size: 1.15rem;
+    letter-spacing: .2px;
+    font-weight: 800;
+    color: #fff;
+  }}
+  .brand .sub {{
+    color: #A8B3FF;
+    font-size: .9rem;
+  }}
+
+  .user {{
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .75rem;
+    padding: .75rem .9rem;
+  }}
+  .user .hello {{ margin: 0; font-weight: 600; }}
+  .user .meta {{ margin: .15rem 0 0; color: #cbd5ff; font-size: .85rem; word-break: break-word; }}
+
+  nav.sidebar {{
+    display: grid;
+    gap: .5rem;
+    margin-top: .25rem;
+  }}
+  nav.sidebar a {{
+    display: flex; align-items: center; gap: .5rem;
+    padding: .65rem .75rem;
+    border-radius: .6rem;
+    text-decoration: none;
+    color: #eef2ff;
+    border: 1px solid transparent;
+    transition: background .15s ease, border-color .15s ease, transform .04s ease;
+  }}
+  nav.sidebar a:hover {{
+    background: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.12);
+  }}
+  nav.sidebar a:active {{ transform: translateY(1px); }}
+  nav.sidebar a.primary {{
+    background: var(--brand);
+    border-color: var(--brand-600);
+    color: #fff;
+  }}
+
+  /* Main area */
+  header.top {{
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background: var(--card);
+    border-bottom: 1px solid #e5e7eb;
+  }}
+  header.top .title {{
+    margin: 0; font-size: 1.1rem; font-weight: 700; color: var(--brand-600);
+  }}
+  header.top a.logout {{
+    text-decoration: none; color: #6b7280; font-weight: 600;
+  }}
+  main.content {{
+    padding: 1.25rem;
+  }}
+  .card {{
+    background: var(--card);
+    border: 1px solid #e5e7eb;
+    border-radius: .9rem;
+    padding: 1rem 1.1rem;
+  }}
+
+  /* Responsive: collapse sidebar on small screens */
+  @media (max-width: 760px) {{
+    body {{
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr;
+    }}
+    aside {{ grid-row: 1; }}
+  }}
+</style>
+
+<aside>
+  <div class="brand" role="banner">
+    <h1>CS370 Auction Portal</h1>
+    <div class="sub">Dashboard</div>
+  </div>
+
+  <section class="user" aria-label="User">
+    <p class="hello">Welcome, {user_name or "bidder"}</p>
+    <p class="meta">{email}</p>
+  </section>
+
+  <nav class="sidebar" aria-label="Main navigation">
+    <a class="primary" href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a>
+    <a href="{SITE_ROOT}cgi/bid.py">Bid on an Item</a>
+    <a href="{SITE_ROOT}cgi/sell.py">Sell an Item</a>
+    <a href="{SITE_ROOT}cgi/logout.py">Log out</a>
   </nav>
-</main>
+</aside>
+
+<div>
+  <header class="top">
+    <h2 class="title">Dashboard</h2>
+    <a class="logout" href="{SITE_ROOT}cgi/logout.py">Log out</a>
+  </header>
+
+  <main class="content" role="main">
+    <section class="card">
+      <p>This is your dashboard. Choose an action from the left.</p>
+    </section>
+  </main>
+</div>
 """))
+
 
 # ====== Entry Point ==========================================================
 if __name__ == "__main__":
