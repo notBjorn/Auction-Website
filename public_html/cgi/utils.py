@@ -18,7 +18,7 @@ TABLE_USER    = "User"
 TABLE_SESSION = "Session"
 
 # Web path root for cookies/links (your account root on Blue)
-SITE_ROOT = "/~cafcode/"
+SITE_ROOT = "/~rsharma/"
 
 # Session timeout
 INACTIVITY_SECONDS = 300  # 5 minutes
