@@ -10,21 +10,59 @@ from utils import (
 SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60  # 168 hours = 604800 seconds
 
 
-def render_form(message: str = ""):
-    body = f"""
+def render_form(user, message: str = "", values=None):
+    """
+    Render a simple HRML form for selling an item.
+
+    :param user: Dictionary containing user info (e.g. username, email)
+    :param message: Optional success or error text displayed at the top of the page
+    :param values: Optional dictionary with prefilled form data if validation failed
+    :return: None (prints HTML output to stdout for CGI)
+    """
+
+    values = values or {}   # If values is None or empty, replace it with an empty dictionary {}
+    # prevents Python errors later when we try to access fields from it
+
+    desc = html.escape(values.get("description", ""))
+    price = html.escape(values.get("starting_price", ""))
+    start = html.escape(values.get("start_dt", ""))
+
+    """
+    Ex: values.get("description", "") means get the value stored at the argument. If nothing there,
+    use an empty string.
+    html.escape() prevents HTML injection attacks by converting special characters like:
+    < to &lt;
+    > to &gt;
+    " to &quot;
+    """
+
+    # f"""...""" means we're using an f-string where {...} allows inserting variables directly
+    body = f"""   
 <h1>Sell an Item</h1>
-{f'<p role="alert">{html.escape(message)}</p>' if message else ''}
+{f'<p role="alert"><strong>{html.escape(message)}</strong></p>' if message else ''}
+
+<!-- This section builds the form visible to the user --> 
 <form method="post" action="{SITE_ROOT}cgi/sell.py" novalidate>
+
+  <!-- Item description field -->
   <label for="desc">Description</label><br>
-  <textarea id="desc" name="description" required></textarea><br>
+  <textarea id="desc" name="description" required>{desc}</textarea><br><br>
+  
+  <!-- Starting price input -->
   <label for="price">Starting price ($)</label><br>
-  <input type="number" id="price" name="starting_price" step="0.01" min="0" required><br>
+  <input type="number" id="price" name="starting_price" step="0.01" min="0" value="{price}" required><br><br>
+  
   <label for="start">Start date & time</label><br>
-  <input type="datetime-local" id="start" name="start_dt" required><br>
+  <input type="datetime-local" id="start" name="start_dt" value="{start}" required><br>
   <small>All auctions last 168 hours (7 days).</small><br><br>
+  
   <button type="submit">Create Auction</button>
 </form>
-<p><a href="{SITE_ROOT}cgi/transactions.py">Back to Transactions</a></p>
+
+<p>
+  <a href="{SITE_ROOT}cgi/transactions.py">Back to Transactions</a> |
+  <a href="{SITE_ROOT}cgi/dashboard.py">Back to Dashboard</a>
+</p>
 """
     print("Content-Type: text/html; charset=utf-8\n")
     print(html_page("Sell an Item", body))
