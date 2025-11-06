@@ -62,19 +62,17 @@ def render_form(user, message: str = "", values=None):
 def create_auction(conn, owner_id, description, starting_price, start_dt):
     description = (description or "").strip()
     if not description or not starting_price or not start_dt:
-        return "All fields are required."
+        return ("error", "All fields are required.")
 
     sp = to_decimal_str(starting_price)
     if sp is None:
-        return "Starting price must be a valid number (up to 2 decimals)."
+        return ("error", "Starting price must be a valid number (up to 2 decimals).")
 
-    # If your HTML <input type="datetime-local"> sends 'YYYY-MM-DDTHH:MM',
-    # normalize it to 'YYYY-MM-DD HH:MM:SS'
     def normalize_html_datetime(dt_str: str) -> str:
         if not dt_str:
             return ""
         dt = dt_str.replace("T", " ")
-        if len(dt) == 16:  # 'YYYY-MM-DD HH:MM'
+        if len(dt) == 16:
             dt += ":00"
         return dt
 
@@ -83,8 +81,7 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
 
-        # Use description for both item_name and description (for now),
-        # set a default category, and set timestamps explicitly.
+        # Insert Item
         cur.execute("""
                     INSERT INTO Items (owner_id, item_name, category, description, posted_date, last_modified)
                     VALUES (%s, %s, %s, %s, NOW(), NOW())
@@ -93,8 +90,7 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
 
-        # Match Auctions columns you showed: (auction_id, item_id, start_price, start_time, duration, status)
-        # We explicitly name columns, so order in VALUES doesn't matter as long as names match.
+        # Insert Auction
         cur.execute("""
                     INSERT INTO Auctions (item_id, start_price, start_time, duration, status)
                     VALUES (
@@ -106,9 +102,14 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
                            )
                     """, (item_id, sp, start_dt, SEVEN_DAYS_SECONDS, start_dt))
 
+        # Get the new auction_id
+        cur.execute("SELECT LAST_INSERT_ID() AS id")
+        auction_id = cur.fetchone()["id"]
+
         cur.execute("COMMIT")
 
-    return "Auction created!"
+    return ("ok", auction_id)
+
 
 
 
@@ -136,19 +137,27 @@ def main():
     conn = db()
     try:
         try:
-            message = create_auction(
+            status, payload = create_auction(
                 conn, user["user_id"],
                 values["description"],
                 values["starting_price"],
                 values["start_dt"]
             )
+            if status == "ok":
+                # PRG: Redirect so refresh/double-click doesn’t re-POST
+                # You can read this in transactions.py to show a flash
+                redirect(f"{SITE_ROOT}cgi/transactions.py?flash=auction_created&aid={payload}")
+                return
+            else:
+                message = payload  # error string from create_auction
         except Exception as e:
-            # Make the error visible on the page instead of a blank screen
             message = f"Error creating auction: {html.escape(str(e))}"
     finally:
         conn.close()
 
+    # On error, fall back to re-render with sticky values
     render_form(user, message, values)
+
 
 
 
