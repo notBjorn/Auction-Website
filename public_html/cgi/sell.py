@@ -69,6 +69,11 @@ def render_form(user, message: str = "", values=None):
 
 
 def create_auction(conn, owner_id, description, starting_price, start_dt):
+    """
+    Server-side validation and DB inserts
+    Keep errors short and specific for the UI
+    """
+
     description = (description or "").strip()
     if not description or not starting_price or not start_dt:
         return "All fields are required."
@@ -80,11 +85,12 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
 
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
-        # 1) Item
+        # 1) Create the Item record
         cur.execute("""
                     INSERT INTO Items (owner_id, item_name, created_at)
                     VALUES (%s, %s, NOW())
                     """, (owner_id, description))
+
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
 
@@ -99,37 +105,45 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
                                %s
                            )
                     """, (item_id, start_dt, SEVEN_DAYS_SECONDS, start_dt, sp))
+
         cur.execute("COMMIT")
 
     return "Auction created!"
 
 
 def main():
+    # Require a valid session
     user, sid = require_valid_session()
     if not user:
         headers = [expire_cookie("SID", path=SITE_ROOT)] if sid else []
         redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
         return
 
-    if os.environ.get("REQUEST_METHOD", "GET") == "GET":
+    method = os.environ.get("REQUEST_METHOD", "GET").upper()
+    if method == "GET":
         render_form()
         return
 
     import cgi
     form = cgi.FieldStorage()
+    values = {
+        "description":      form.getfirst("description", "")
+        "starting_price":   form.getfirst("starting_price", "")
+        "start_dt":         form.getfirst("start_dt", "")
+    }
 
     conn = db()
     try:
         message = create_auction(
             conn, user["user_id"],
-            form.getfirst("description", ""),
-            form.getfirst("starting_price", ""),
-            form.getfirst("start_dt", "")
+            values["description"],
+            values["starting_price"],
+            values["start_dt"]
         )
     finally:
         conn.close()
-
-    render_form(message)
+    # Re-render the form with a message and sticky values
+    render_form(user, message, values)
 
 
 if __name__ == "__main__":
