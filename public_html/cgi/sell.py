@@ -60,46 +60,56 @@ def render_form(user, message: str = "", values=None):
 
 
 def create_auction(conn, owner_id, description, starting_price, start_dt):
-    """
-    Server-side validation and DB inserts
-    Keep errors short and specific for the UI
-    """
-
     description = (description or "").strip()
     if not description or not starting_price or not start_dt:
         return "All fields are required."
 
-    # money as string: MySQL DECIMAL will store precisely
     sp = to_decimal_str(starting_price)
     if sp is None:
         return "Starting price must be a valid number (up to 2 decimals)."
 
+    # If your HTML <input type="datetime-local"> sends 'YYYY-MM-DDTHH:MM',
+    # normalize it to 'YYYY-MM-DD HH:MM:SS'
+    def normalize_html_datetime(dt_str: str) -> str:
+        if not dt_str:
+            return ""
+        dt = dt_str.replace("T", " ")
+        if len(dt) == 16:  # 'YYYY-MM-DD HH:MM'
+            dt += ":00"
+        return dt
+
+    start_dt = normalize_html_datetime(start_dt)
+
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
-        # 1) Create the Item record
+
+        # Use description for both item_name and description (for now),
+        # set a default category, and set timestamps explicitly.
         cur.execute("""
-                    INSERT INTO Items (owner_id, item_name, created_at)
-                    VALUES (%s, %s, NOW())
-                    """, (owner_id, description))
+                    INSERT INTO Items (owner_id, item_name, category, description, posted_date, last_modified)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
+                    """, (owner_id, description, "General", description))
 
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
 
-        # 2) Auction (status based on start time; duration fixed 7 days)
+        # Match Auctions columns you showed: (auction_id, item_id, start_price, start_time, duration, status)
+        # We explicitly name columns, so order in VALUES doesn't matter as long as names match.
         cur.execute("""
-                    INSERT INTO Auctions (item_id, start_time, duration, status, start_price)
+                    INSERT INTO Auctions (item_id, start_price, start_time, duration, status)
                     VALUES (
                                %s,
                                %s,
                                %s,
-                               CASE WHEN %s <= NOW() THEN 'running' ELSE 'scheduled' END,
-                               %s
+                               %s,
+                               CASE WHEN %s <= NOW() THEN 'running' ELSE 'scheduled' END
                            )
-                    """, (item_id, start_dt, SEVEN_DAYS_SECONDS, start_dt, sp))
+                    """, (item_id, sp, start_dt, SEVEN_DAYS_SECONDS, start_dt))
 
         cur.execute("COMMIT")
 
     return "Auction created!"
+
 
 
 def main():
@@ -118,23 +128,28 @@ def main():
     import cgi
     form = cgi.FieldStorage()
     values = {
-        "description":      form.getfirst("description", ""),
-        "starting_price":   form.getfirst("starting_price", ""),
-        "start_dt":         form.getfirst("start_dt", "")
+        "description":     form.getfirst("description", ""),
+        "starting_price":  form.getfirst("starting_price", ""),
+        "start_dt":        form.getfirst("start_dt", "")
     }
 
     conn = db()
     try:
-        message = create_auction(
-            conn, user["user_id"],
-            values["description"],
-            values["starting_price"],
-            values["start_dt"]
-        )
+        try:
+            message = create_auction(
+                conn, user["user_id"],
+                values["description"],
+                values["starting_price"],
+                values["start_dt"]
+            )
+        except Exception as e:
+            # Make the error visible on the page instead of a blank screen
+            message = f"Error creating auction: {html.escape(str(e))}"
     finally:
         conn.close()
-    # Re-render the form with a message and sticky values
+
     render_form(user, message, values)
+
 
 
 if __name__ == "__main__":
