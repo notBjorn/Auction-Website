@@ -12,7 +12,7 @@ SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60  # 168 hours = 604800 seconds
 
 def render_form(user, message: str = "", values=None):
     """
-    Render a simple HRML form for selling an item.
+    Render a simple HTML form for selling an item.
 
     :param user: Dictionary containing user info (e.g. username, email)
     :param message: Optional success or error text displayed at the top of the page
@@ -26,15 +26,6 @@ def render_form(user, message: str = "", values=None):
     desc = html.escape(values.get("description", ""))
     price = html.escape(values.get("starting_price", ""))
     start = html.escape(values.get("start_dt", ""))
-
-    """
-    Ex: values.get("description", "") means get the value stored at the argument. If nothing there,
-    use an empty string.
-    html.escape() prevents HTML injection attacks by converting special characters like:
-    < to &lt;
-    > to &gt;
-    " to &quot;
-    """
 
     # f"""...""" means we're using an f-string where {...} allows inserting variables directly
     body = f"""   
@@ -121,14 +112,14 @@ def main():
 
     method = os.environ.get("REQUEST_METHOD", "GET").upper()
     if method == "GET":
-        render_form()
+        render_form(user)
         return
 
     import cgi
     form = cgi.FieldStorage()
     values = {
-        "description":      form.getfirst("description", "")
-        "starting_price":   form.getfirst("starting_price", "")
+        "description":      form.getfirst("description", ""),
+        "starting_price":   form.getfirst("starting_price", ""),
         "start_dt":         form.getfirst("start_dt", "")
     }
 
