@@ -43,7 +43,7 @@ def main():
   :root {{
     --brand: #0a58ca;          /* Primary blue for links/buttons */
     --brand-600: #0947a5;      /* Slightly darker blue for hover states */
-    --bg: #f6f7fb;             /* Light gray background for the main page */
+    --bg: #D2A1FF;             /* Light gray background for the main page */
     --text: #1f2937;           /* Default text color (dark gray) */
     --muted: #6b7280;          /* Secondary text color (lighter gray) */
     --card: #ffffff;           /* White background for content cards */
