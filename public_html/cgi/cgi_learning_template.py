@@ -18,7 +18,7 @@
 # ------------------------------------------
 # Enables helpful debugging output in the browser if a script crashes.
 # (Displays Python tracebacks in HTML.)
-import cgitb; cgitb.enable()
+import cgitb; cgitb.enable(display=0, logdir="/home/student/rsharma/public_html/cgi/logs")
 
 # Built-in Python modules:
 import html   # Used to safely escape user input before showing it on a webpage

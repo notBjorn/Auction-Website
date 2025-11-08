@@ -17,6 +17,13 @@ nav a {
     color: #0066cc;
 }
 
+header loverlay {
+    background-color: #0066cc;
+    color: #fff000;
+    padding: 5px;
+    border-radius: 5px;
+}
+
 nav a:hover {
     text-decoration: underline;
 }

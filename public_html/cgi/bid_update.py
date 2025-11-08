@@ -6,7 +6,7 @@
 # Minimal handler to raise a user's max bid on a running auction.
 # =============================================================================
 
-import cgitb; cgitb.enable()
+import cgitb; cgitb.enable(display=0, logdir="/home/student/rsharma/public_html/cgi/logs")
 import sys, html
 from decimal import Decimal, InvalidOperation
 from utils import (

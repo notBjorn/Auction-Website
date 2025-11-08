@@ -8,7 +8,7 @@
 # =============================================================================
 
 # ====== Imports / Setup ======================================================
-import cgitb; cgitb.enable()
+import cgitb; cgitb.enable(display=0, logdir="/home/student/rsharma/public_html/cgi/logs")
 import os, html
 
 from utils import (

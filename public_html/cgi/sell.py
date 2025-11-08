@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import cgitb; cgitb.enable()
+import cgitb; cgitb.enable(display=0, logdir="/home/student/rsharma/public_html/cgi/logs")
 import html, os
 from utils import (
     SITE_ROOT, html_page, redirect, expire_cookie,

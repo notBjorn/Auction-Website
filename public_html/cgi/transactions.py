@@ -6,7 +6,7 @@
 # Selling + Purchases + Current Bids + Didn't Win (all LIVE).
 # =============================================================================
 
-import cgitb; cgitb.enable()
+import cgitb; cgitb.enable(display=0, logdir="/home/student/rsharma/public_html/cgi/logs")
 import html
 from decimal import Decimal
 from utils import (
