@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CS370 Auction Portal | Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Link to external CSS -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Sidebar -->
+  <aside>
+    <!-- Portal Title + Subtitle -->
+    <div class="brand" role="banner">
+      <h1>CS370 Auction Portal</h1>
+      <div class="sub">Dashboard</div>
+    </div>
+
+    <!-- Logged-in User Info -->
+    <section class="user" aria-label="User">
+      <p class="hello">Welcome, {user_name or "bidder"}</p>
+      <p class="meta">{email}</p>
+    </section>
+
+    <!-- Navigation Links -->
+    <nav class="sidebar" aria-label="Main navigation">
+      <a class="primary" href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a>
+      <a href="{SITE_ROOT}cgi/bid.py">Bid on an Item</a>
+      <a href="{SITE_ROOT}cgi/sell.py">Sell an Item</a>
+      <a href="{SITE_ROOT}cgi/logout.py">Log out</a>
+    </nav>
+  </aside>
+
+  <!-- Right-side Main Area -->
+  <div>
+    <!-- Top Bar above main content -->
+    <header class="top">
+      <h2 class="title">Dashboard</h2>
+      <a class="logout" href="{SITE_ROOT}cgi/logout.py">Log out</a>
+    </header>
+
+    <!-- Main content section -->
+    <main class="content" role="main">
+      <section class="card">
+        <p>This is your dashboard. Choose an action from the left.</p>
+      </section>
+    </main>
+  </div>
+
+</body>
+</html>

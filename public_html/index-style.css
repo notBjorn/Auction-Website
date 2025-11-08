@@ -1,35 +1,98 @@
-/* General body styling */
-body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f0f0f0;
+/* ---------- Body & Background ---------- */
+body.v2 {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start; /* top alignment */
+  align-items: center;         /* center horizontally */
+  background-image: url("https://images.unsplash.com/photo-1572283046480-e990be92d301?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1744");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-color: rgba(0,0,0,0.1); /* fallback */
 }
 
-/* Header styling */
-header h1 {
-    color: #333;
+/* Optional dark overlay for better contrast */
+body.v2::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: -1;
 }
 
-/* Navigation links */
+/* ---------- Glass Card Styles ---------- */
+.glass-card-top,
+.glass-card-bottom {
+  background: rgba(255, 255, 255, 0.05); /* semi-transparent */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 24px;
+  padding: 2rem;
+  width: 70vw;
+  max-width: 500px;
+  margin: 2rem auto;
+  color: #fff;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+}
+
+/* ---------- Headings & Paragraphs ---------- */
+.glass-card-top h1 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.glass-card-top p,
+.glass-card-bottom p {
+  font-size: 1.1rem;
+  margin: 0.5rem 0;
+  color: rgba(231, 231, 231, 0.85);
+}
+
+/* ---------- Navigation Links ---------- */
+nav {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
 nav a {
-    margin-right: 10px;
-    text-decoration: none;
-    color: #0066cc;
-}
-
-header loverlay {
-    background-color: #0066cc;
-    color: #fff000;
-    padding: 5px;
-    border-radius: 5px;
+  padding: 0.6rem 1.2rem;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(90deg, rgba(178, 173, 185, 0.27), rgba(45, 74, 127, 0.38));
+  transition: transform 0.1s ease, opacity 0.2s ease;
 }
 
 nav a:hover {
-    text-decoration: underline;
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
-/* Main content paragraph */
-main p {
-    font-size: 18px;
-    color: #555;
+/* ---------- Responsive ---------- */
+@media (max-width: 800px) {
+  .glass-card-top,
+  .glass-card-bottom {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  nav {
+    flex-direction: column;
+  }
+
+  nav a {
+    width: 100%;
+    text-align: center;
+  }
 }
