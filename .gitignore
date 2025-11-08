@@ -8,6 +8,7 @@
 !/public_html/
 !/public_html/**
 !/requirements.txt
+!/public_html/cgi/logs/
 
 # --- Ignore typical noise INSIDE those dirs ---
 __pycache__/
@@ -27,3 +28,4 @@ build/
 *.tar
 *.tar.gz
 *.swp
+
