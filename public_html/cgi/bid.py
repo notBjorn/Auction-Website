@@ -118,6 +118,7 @@ def render_form(auctions, message: str = ""):
   </select><br>
 
   <label for="bid_amount">Your highest bid ($)</label><br>
+  <small><em>Bids can be entered in increments of $0.01.</em></small><br>
   <input type="number" step="0.01" min="0.01" id="bid_amount" name="bid_amount" required><br><br>
 
   <button type="submit">Place bid</button>
