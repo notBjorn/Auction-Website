@@ -1,0 +1,46 @@
+Project 03: Bid & Sell (How to Test)
+New Files: bid.py, sell.py + include previousshared files (utils.py, transactions.py, update_bid.py)
+Team: Caffeinated Coders
+URL root: https://blue.cs.sonoma.edu/~cafcode/
+
+Test Accounts
+-------------
+User: Seller (owns auctions, use to create a new auction "sell an item")
+  Username: seller@example.com
+  Password: seller123
+
+User: Bidder (bids on item, use to bid on a new item, and increase bid on transactions page)
+  Username: bidder@example.com
+  Password: bidder123
+
+
+A. Sell an Item
+----------------------------
+1) Log in as seller@example.com.
+2) Click on "Sell an item".
+3) Fill the form:
+4) Submit.
+
+Expected output: Redirect to the Transactions page which display all items seller has for sale.
+
+B. Bid on an Item
+------------------------------
+1) Log in as bidder@example.com.
+2) Click on "Bid on an item".
+3) The pull-down shows auctions currently running (not owned by bidder).
+4) Select a running auction and enter a bid HIGHER than the current price.
+5) Submit.
+
+Expect output:
+   • Success message "Bid Placed" will display
+   • New highest bid visible is now visible in the drop down
+
+C. Increase Bid Amount
+------------------------------
+1) Log in as bidder@example.com.
+2) Go to transactions page
+3) Scroll down to section 3, current bids
+4) Input an increased bid amount and click the button "Raise"
+
+Expected output: Page will reload and the new highest bid will be updated
+
