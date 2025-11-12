@@ -44,6 +44,7 @@ def render_form(user, message: str = "", values=None):
   <input type="number" id="price" name="starting_price" step="0.01" min="0" value="{price}" required><br><br>
   
   <label for="start">When do you want to start your auction?</label><br>
+  <small><em>Select both date and time using the drop down below.</em></small><br>
   <input type="datetime-local" id="start" name="start_dt" value="{start}" required><br>
   <small>All auctions last 168 hours (7 days).</small><br><br>
   
