@@ -36,14 +36,14 @@ def render_form(user, message: str = "", values=None):
 <form method="post" action="{SITE_ROOT}cgi/sell.py" novalidate>
 
   <!-- Item description field -->
-  <label for="desc">Description</label><br>
+  <label for="desc">Describe your item</label><br>
   <textarea id="desc" name="description" required>{desc}</textarea><br><br>
   
   <!-- Starting price input -->
   <label for="price">Starting price ($)</label><br>
   <input type="number" id="price" name="starting_price" step="0.01" min="0" value="{price}" required><br><br>
   
-  <label for="start">Start date & time</label><br>
+  <label for="start">When do you want to start your auction?</label><br>
   <input type="datetime-local" id="start" name="start_dt" value="{start}" required><br>
   <small>All auctions last 168 hours (7 days).</small><br><br>
   
