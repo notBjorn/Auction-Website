@@ -19,6 +19,8 @@ from utils import (
 from transactions_helpers import (
     fetch_current_bids,
     render_current_bids_table,
+    fetch_selling_active,
+    render_selling_table,
 )
 
 # ====== Controller: Main Request Handler =====================================
@@ -38,15 +40,19 @@ def main():
     user_name = html.escape(user.get("user_name", ""))
     user_id   = user.get("user_id")
 
-    # Fetch current bids (active transactions) for this user
+    # Fetch current bids and active selling for this user
     conn = db()
     try:
-        current_bids = fetch_current_bids(conn, user_id)
+        current_bids   = fetch_current_bids(conn, user_id)
+        selling_active = fetch_selling_active(conn, user_id)
     finally:
         conn.close()
 
+    # Build up one string with zero, one, or two cards
+    active_sections = ""
+
     if current_bids:
-        active_section = f"""
+        active_sections += f"""
     <section class="card">
       <h3 style="margin-top:0;">Current Bids</h3>
       <p class="muted">
@@ -55,8 +61,17 @@ def main():
       {render_current_bids_table(current_bids)}
     </section>
     """
-    else:
-        active_section = ""
+
+    if selling_active:
+        active_sections += f"""
+    <section class="card">
+      <h3 style="margin-top:0;">Active Listings</h3>
+      <p class="muted">
+        These are your current items for sale.
+      </p>
+      {render_selling_table(selling_active, "You are not selling anything yet.")}
+    </section>
+    """
 
     # ----- Valid session: render dashboard -----------------------------------
     print("Content-Type: text/html\n")
