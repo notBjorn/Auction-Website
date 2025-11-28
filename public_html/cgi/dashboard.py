@@ -13,13 +13,17 @@ import cgitb; cgitb.enable()
 import html
 
 from utils import (
-    SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session
+    SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session, db
+)
+
+from transactions_helpers import (
+    fetch_current_bids,
+    render_current_bids_table,
 )
 
 # ====== Controller: Main Request Handler =====================================
 def main():
     user, sid = require_valid_session()
-
 
     # ----- Not logged in or timed out ----------------------------------------
     if not user:
@@ -29,9 +33,32 @@ def main():
         redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
         return
 
-    # ----- Valid session: render dashboard -----------------------------------
-    email = html.escape(user.get("email", ""))
+    # ----- Valid session: load user + active transactions --------------------
+    email     = html.escape(user.get("email", ""))
     user_name = html.escape(user.get("user_name", ""))
+    user_id   = user.get("user_id")
+
+    # Fetch current bids (active transactions) for this user
+    conn = db()
+    try:
+        current_bids = fetch_current_bids(conn, user_id)
+    finally:
+        conn.close()
+
+    if current_bids:
+        active_section = f"""
+    <section class="card">
+      <h3 style="margin-top:0;">Current Bids</h3>
+      <p class="muted">
+        These auctions are currently running. You can raise your max bid directly from here.
+      </p>
+      {render_current_bids_table(current_bids)}
+    </section>
+    """
+    else:
+        active_section = ""
+
+    # ----- Valid session: render dashboard -----------------------------------
     print("Content-Type: text/html\n")
     print(html_page("Dashboard", f"""
 <!-- ===========================
@@ -164,6 +191,42 @@ def main():
     border: 1px solid #e5e7eb;
     border-radius: .9rem;
     padding: 1rem 1.1rem;
+    margin-bottom: 1rem;
+  }}
+
+  /* ---------- Table styling for current bids ---------- */
+  .muted {{ color: var(--muted); font-size: .95rem; }}
+  .tbl {{ width: 100%; border-collapse: collapse; margin-top: .5rem; }}
+  .tbl th, .tbl td {{
+    padding: .4rem .5rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+    font-size: .9rem;
+  }}
+  .tbl th {{
+    background: #f9fafb;
+    font-weight: 600;
+  }}
+  .warn {{ color: #b45309; font-weight: 600; }}
+  form.inline {{
+    display: inline-flex;
+    gap: .35rem;
+    align-items: center;
+    margin: 0;
+  }}
+  input[type=number] {{
+    width: 7ch;
+    padding: .2rem .3rem;
+  }}
+  button {{
+    cursor: pointer;
+    border-radius: .375rem;
+    border: 1px solid #d1d5db;
+    padding: .25rem .6rem;
+    background: #f9fafb;
+  }}
+  button:hover {{
+    background: #f3f4f6;
   }}
 
   /* ---------- Responsive layout for smaller screens ---------- */
@@ -214,10 +277,10 @@ def main():
     <section class="card">
       <p>This is your dashboard. Choose an action from the left.</p>
     </section>
+    {active_section}
   </main>
 </div>
 """))
-
 
 
 # ====== Entry Point ==========================================================
