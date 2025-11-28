@@ -287,13 +287,14 @@ def main():
     <a class="logout" href="{SITE_ROOT}cgi/logout.py">Log out</a>
   </header>
 
-  <!-- Main content section -->
-  <main class="content" role="main">
-    <section class="card">
-      <p>This is your dashboard. Choose an action from the left.</p>
-    </section>
-    {active_section}
-  </main>
+<!-- Main content section -->
+<main class="content" role="main">
+  <section class="card">
+    <p>This is your dashboard. Choose an action from the left.</p>
+  </section>
+
+  {active_sections}
+</main>
 </div>
 """))
 
