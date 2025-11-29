@@ -344,12 +344,13 @@ def main():
         try:
             cn = db()
             # Use the public query that does NOT filter by owner_id
-            auctions = fetch_all_running_auctions(cn)
-        except:
+            auctions = fetch_public_running_auctions(cn)
+        except Exception:
             auctions = []
         finally:
-            try: cn.close()
-            except: Exception
+            try:
+                cn.close()
+            except Exception:
                 pass
 
         auction_html = render_auction_cards_for_login(auctions)
@@ -357,6 +358,7 @@ def main():
         print("Content-Type: text/html\n")
         print(html_page("Login", render_login_page(auctions_html=auction_html)))
         return
+
 
     # ----- POST: parse/validate form ----------------------------------------
     form = parse_urlencoded(read_post_body())
