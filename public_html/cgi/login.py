@@ -78,7 +78,7 @@ def render_auction_cards_for_login(auctions):
         """
         cards.append(card)
 
-    return '<div class=auction-mini-grid">' + ''.join(cards) + '</div>'
+    return '<div class="auction-mini-grid">' + ''.join(cards) + '</div>'
 
 # ====== View: Full Login Page (styled like dashboard) =======================
 def render_login_page(msg: str = "", auctions_html: str = "") -> str:
@@ -343,17 +343,19 @@ def main():
         auctions = []
         try:
             cn = db()
-            auctions = fetch_all_running_auctions(cn, user_id=0) # 0 = not logged in
+            # Use the public query that does NOT filter by owner_id
+            auctions = fetch_all_running_auctions(cn)
         except:
-            pass
+            auctions = []
         finally:
             try: cn.close()
-            except: pass
+            except: Exception
+                pass
 
         auction_html = render_auction_cards_for_login(auctions)
 
         print("Content-Type: text/html\n")
-        print(html_page("Login", render_login_page().replace("Auction Listing TBD", auction_html)))
+        print(html_page("Login", render_login_page(auctions_html=auction_html)))
         return
 
     # ----- POST: parse/validate form ----------------------------------------
