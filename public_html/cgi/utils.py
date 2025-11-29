@@ -292,3 +292,28 @@ def to_decimal_str(x: str) -> Optional[str]:
         return None
     return s
 # ============================================================================
+
+# ====== Database Refresh ===================================================
+def refresh_auction_statuses(conn):
+    """Sync auction.status with current time (scheduled → running → ended)."""
+    with conn.cursor() as cur:
+        # 1) Move SCHEDULED → RUNNING when start_time has passed,
+        #    but the auction hasn't fully expired yet.
+        cur.execute("""
+                    UPDATE Auctions
+                    SET status = 'running'
+                    WHERE status = 'scheduled'
+                      AND NOW() >= start_time
+                      AND NOW() < DATE_ADD(start_time, INTERVAL duration SECOND)
+                    """)
+
+        # 2) Move RUNNING → ENDED when time is up.
+        cur.execute("""
+                    UPDATE Auctions
+                    SET status = 'ended'
+                    WHERE status = 'running'
+                      AND NOW() >= DATE_ADD(start_time, INTERVAL duration SECOND)
+                    """)
+
+    conn.commit()
+# ============================================================================

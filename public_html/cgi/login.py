@@ -14,7 +14,7 @@ import os, html
 from utils import (
     SITE_ROOT, TABLE_USER,
     html_page, parse_urlencoded, read_post_body, redirect,
-    db, check_password_dev, set_cookie, create_session
+    db, check_password_dev, set_cookie, create_session, refresh_auction_statuses,
 )
 
 from display_auctions import (
@@ -341,7 +341,11 @@ def main():
     if method == "GET":
         auctions = []
         try:
-            cn = db()
+            cn = db()\
+
+            # Keep auction statuses up to date on page load
+            refresh_auction_statuses(cn)
+
             # Use the public query that does NOT filter by owner_id
             auctions = fetch_public_running_auctions(cn)
         except Exception:
