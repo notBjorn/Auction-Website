@@ -55,7 +55,7 @@ def render_auction_cards_for_login(auctions):
     return '<div class=auction-mini-grid">' + ''.join(cards) + '</div>'
 
 # ====== View: Full Login Page (styled like dashboard) =======================
-def render_login_page(msg: str = "") -> str:
+def render_login_page(msg: str = "", auctions_html: str = "") -> str:
     """
     Render the full login page with:
       - Top header bar (brand on left, login form on right)
@@ -299,16 +299,7 @@ def render_login_page(msg: str = "") -> str:
 <main class="content" role="main">
   <section class="card">
     <h2>Browse Auctions</h2>
-    <p class="muted">
-      Once the auction listing page is wired in as the homepage, active auctions
-      will appear here. For now this is just a placeholder.
-    </p>
-
-    <hr class="divider">
-
-    <div class="placeholder">
-      Auction Listing TBD
-    </div>
+    {auctions_html or '<p class="muted">No running auctions right now.</p>'}
   </section>
 </main>
 """
