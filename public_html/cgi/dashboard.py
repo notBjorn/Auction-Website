@@ -273,6 +273,7 @@ def main():
   <!-- Navigation Links -->
   <nav class="sidebar" aria-label="Main navigation">
     <a class="primary" href="{SITE_ROOT}cgi/transactions.py">Your Transactions</a>
+    <a href="{SITE_ROOT}cgi/display_auctions.py">See what's for Sale</a>
     <a href="{SITE_ROOT}cgi/bid.py">Bid on an Item</a>
     <a href="{SITE_ROOT}cgi/sell.py">Sell an Item</a>
     <a href="{SITE_ROOT}cgi/logout.py">Log out</a>
