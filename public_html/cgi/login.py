@@ -17,6 +17,43 @@ from utils import (
     db, check_password_dev, set_cookie, create_session
 )
 
+from display_auctions import (
+    render_money,
+    format_time_remaining,
+    fetch_all_running_auctions,
+)
+
+# ====== helper function to bring auctions (as smaller cards) to login page =====
+
+def render_auction_cards_for_login(auctions):
+    """Return just the auction cards HTML (No nav bars, no headers)."""
+    if not auctions:
+        return '<p class="placeholder">No running auctions right now.</p>'
+
+    cards = []
+    for a in auctions:
+        item_name = html.escape(a["item_name"] or "Untitled")
+        desc = html.escape(a["description"] or "")
+        short_desc = desc[:90] + "..." if len(desc) > 90 else desc
+        price = render_money(a["current_price"])
+        bid_count = a["bid_count"] or 0
+        time_left = format_time_remaining(a["seconds_remaining"])
+
+        card = f"""
+        <div class="auction-mini-card">
+            <h3>{item_name}</h3>
+            <p class="mini-desc">{short_desc}</p>
+            <div class="mini-stats">
+                <span>${price}</span>
+                <span>{bid_count}</span>
+                <span>{time_left}</span>
+            </div>
+        </div>
+        """
+        cards.append(card)
+
+    return '<div class=auction-mini-grid">' + ''.join(cards) + '</div>'
+
 # ====== View: Full Login Page (styled like dashboard) =======================
 def render_login_page(msg: str = "") -> str:
     """
@@ -202,6 +239,43 @@ def render_login_page(msg: str = "") -> str:
       justify-content: flex-start;
     }}
   }}
+  
+  /* ---------- Auction mini-cards (for login page) ---------- */
+
+.auction-mini-grid {{
+    display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}}
+
+.auction-mini-card {{
+    background: var(--card);
+  border: 1px solid #e5e7eb;
+  border-radius: .6rem;
+  padding: .75rem 1rem;
+}}
+
+.auction-mini-card h3 {{
+    margin: 0 0 .5rem 0;
+  font-size: 1rem;
+  color: var(--brand-600);
+}}
+
+.mini-desc {{
+    color: var(--muted);
+  font-size: .85rem;
+  margin: 0 0 .75rem 0;
+}}
+
+.mini-stats {{
+    display: flex;
+  justify-content: space-between;
+  font-size: .85rem;
+  color: var(--text);
+  font-weight: 600;
+}}
+
 </style>
 
 <header class="top">
@@ -249,8 +323,20 @@ def main():
 
     # ----- GET: show the styled login page ----------------------------------
     if method == "GET":
+        auctions = []
+        try:
+            cn = db()
+            auctions = fetch_all_running_auctions(cn, user_id=0) # 0 = not logged in
+        except:
+            pass
+        finally:
+            try: cn.close()
+            except: pass
+
+        auction_html = render_auction_cards_for_login(auctions)
+
         print("Content-Type: text/html\n")
-        print(html_page("Login", render_login_page()))
+        print(html_page("Login", render_login_page().replace("Auction Listing TBD", auction_html)))
         return
 
     # ----- POST: parse/validate form ----------------------------------------
