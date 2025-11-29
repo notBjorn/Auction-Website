@@ -23,6 +23,32 @@ from display_auctions import (
     fetch_all_running_auctions,
 )
 
+def fetch_public_running_auctions(conn):
+    sql = """
+          SELECT
+              A.auction_id,
+              I.item_name,
+              I.description,
+              I.category,
+              A.start_price,
+              COALESCE(MAX(B.bid_amount), A.start_price) AS current_price,
+              COUNT(B.bid_id) AS bid_count,
+              TIMESTAMPDIFF(SECOND, NOW(),
+                                    DATE_ADD(A.start_time, INTERVAL A.duration SECOND)
+              ) AS seconds_remaining
+          FROM Auctions A
+                   JOIN Items I USING (item_id)
+                   LEFT JOIN Bids B ON B.auction_id = A.auction_id
+          WHERE A.status='running'
+            AND NOW() < DATE_ADD(A.start_time, INTERVAL A.duration SECOND)
+          GROUP BY A.auction_id
+          ORDER BY seconds_remaining ASC
+              LIMIT 500; \
+          """
+    with conn.cursor() as cur:
+        cur.execute(sql)
+        return cur.fetchall()
+
 # ====== helper function to bring auctions (as smaller cards) to login page =====
 
 def render_auction_cards_for_login(auctions):
