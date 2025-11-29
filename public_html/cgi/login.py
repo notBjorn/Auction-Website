@@ -40,7 +40,6 @@ def fetch_public_running_auctions(conn):
                    JOIN Items I USING (item_id)
                    LEFT JOIN Bids B ON B.auction_id = A.auction_id
           WHERE A.status='running'
-            AND NOW() < DATE_ADD(A.start_time, INTERVAL A.duration SECOND)
           GROUP BY A.auction_id
           ORDER BY seconds_remaining ASC
               LIMIT 500; \
