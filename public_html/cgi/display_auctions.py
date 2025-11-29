@@ -466,7 +466,7 @@ def fetch_all_running_auctions(conn, user_id):
           GROUP BY A.auction_id, I.item_name, I.description, I.category,
                    A.start_price, A.start_time, A.duration
           ORDER BY seconds_remaining ASC, A.auction_id ASC
-              LIMIT 500;
+              LIMIT 500 \
           """
     with conn.cursor() as cur:
         cur.execute(sql, (user_id,))
