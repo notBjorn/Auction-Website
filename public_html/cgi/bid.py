@@ -10,6 +10,9 @@ from utils import (
     require_valid_session, db
 )
 
+# Import Styles
+from styles import THEME as s
+
 # ---------- Queries ----------
 
 def fetch_running_auctions(conn, user_id):
@@ -101,34 +104,46 @@ def render_form(auctions, message: str = ""):
     if auctions:
         for a in auctions:
             label = f'{a["item_name"]} — current ${a["current_price"]:.2f}'
-            opts.append(
-                f'<option value="{a["auction_id"]}">{html.escape(label)}</option>'
-            )
+            opts.append(f'<option value="{a["auction_id"]}">{html.escape(label)}</option>')
     else:
         opts.append('<option value="">(No running auctions available)</option>')
 
+    note = f'<div class="{s["error_box"]}">{html.escape(message)}</div>' if message else ""
+
     body = f"""
-<header><h1>Bid on an Item</h1></header>
-{f'<p role="alert"><strong>{html.escape(message)}</strong></p>' if message else ''}
+    <div class="{s['page_center']}">
+        <div class="{s['card_centered']}">
+            <div class="text-center">
+                <h1 class="{s['h1_center']}">Place a Bid</h1>
+                <p class="{s['subtext']}">Select an item and enter your max bid</p>
+            </div>
 
-<form method="post" action="{SITE_ROOT}cgi/bid.py" novalidate>
-  <label for="auction_id">Item</label><br>
-  <select id="auction_id" name="auction_id" required>
-    {''.join(opts)}
-  </select><br>
+            {note}
 
-  <label for="bid_amount">Your highest bid ($)</label><br>
-  <small><em>Bids can be entered in increments of $0.01.</em></small><br>
-  <input type="number" step="0.01" min="0.01" id="bid_amount" name="bid_amount" required><br><br>
+            <form method="post" action="{SITE_ROOT}cgi/bid.py" class="mt-8 space-y-6">
+                <div>
+                    <label for="auction_id" class="{s['label']}">Select Item</label>
+                    <select id="auction_id" name="auction_id" required class="{s['select']}">
+                        {''.join(opts)}
+                    </select>
+                </div>
 
-  <button type="submit">Place bid</button>
-</form>
+                <div>
+                    <label for="bid_amount" class="{s['label']}">Your Bid ($)</label>
+                    <input type="number" step="0.01" min="0.01" id="bid_amount" name="bid_amount" required class="{s['input']}">
+                    <p class="mt-1 text-xs text-gray-500">Enter increments of $0.01</p>
+                </div>
 
-<p style="margin-top:1rem;">
-  <a href="{SITE_ROOT}cgi/transactions.py">Back to Transactions</a> &middot;
-  <a href="{SITE_ROOT}cgi/dashboard.py">Dashboard</a>
-</p>
-"""
+                <button type="submit" class="{s['btn_primary']}">Place Bid</button>
+            </form>
+
+            <div class="mt-6 flex justify-between text-sm">
+                <a href="{SITE_ROOT}cgi/display_auctions.py" class="text-indigo-600 hover:text-indigo-500 font-medium">Browse Items</a>
+                <a href="{SITE_ROOT}cgi/dashboard.py" class="text-gray-500 hover:text-gray-900">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+    """
     print("Content-Type: text/html; charset=utf-8\n")
     print(html_page("Bid on an Item", body))
 
