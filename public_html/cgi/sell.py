@@ -23,6 +23,7 @@ def render_form(user, message: str = "", values=None):
     values = values or {}   # If values is None or empty, replace it with an empty dictionary {}
     # prevents Python errors later when we try to access fields from it
 
+    item_name = html.escape(values.get("item_name"))
     desc = html.escape(values.get("description", ""))
     price = html.escape(values.get("starting_price", ""))
     start = html.escape(values.get("start_dt", ""))
@@ -34,6 +35,10 @@ def render_form(user, message: str = "", values=None):
 
 <!-- This section builds the form visible to the user --> 
 <form method="post" action="{SITE_ROOT}cgi/sell.py" novalidate>
+
+  <!-- Item name/title field -->
+  <label for="item_name">Item Name</label><br>
+  <input type="text" id="item_name" name="item_name"> value="{item_name}" required><br><br>
 
   <!-- Item description field -->
   <label for="desc">Describe your item</label><br>
@@ -60,9 +65,10 @@ def render_form(user, message: str = "", values=None):
     print(html_page("Sell an Item", body))
 
 
-def create_auction(conn, owner_id, description, starting_price, start_dt):
+def create_auction(conn, owner_id, item_name, description, starting_price, start_dt):
+    item_name = (item_name or "").strip()
     description = (description or "").strip()
-    if not description or not starting_price or not start_dt:
+    if not item_name or description or not starting_price or not start_dt:
         return ("error", "All fields are required.")
 
     sp = to_decimal_str(starting_price)
@@ -86,7 +92,7 @@ def create_auction(conn, owner_id, description, starting_price, start_dt):
         cur.execute("""
                     INSERT INTO Items (owner_id, item_name, category, description, posted_date, last_modified)
                     VALUES (%s, %s, %s, %s, NOW(), NOW())
-                    """, (owner_id, description, "General", description))
+                    """, (owner_id, item_name, "General", description))
 
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
@@ -130,6 +136,7 @@ def main():
     import cgi
     form = cgi.FieldStorage()
     values = {
+        "item_name":       form.getfirst("item_name", ""),
         "description":     form.getfirst("description", ""),
         "starting_price":  form.getfirst("starting_price", ""),
         "start_dt":        form.getfirst("start_dt", "")
@@ -140,6 +147,7 @@ def main():
         try:
             status, payload = create_auction(
                 conn, user["user_id"],
+                values["item_name"],
                 values["description"],
                 values["starting_price"],
                 values["start_dt"]
