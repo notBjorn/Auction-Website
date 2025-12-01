@@ -143,7 +143,7 @@ def render_page(message: str = "", auctions=None, user_status=None):
                 </div>
                 
                 <div class="card-footer">
-                    <form method="post" action="{SITE_ROOT}cgi/bid.py" class="bid-form">
+                    <form method="post" action="{SITE_ROOT}cgi/dashboard.py" class="bid-form">
                         <input type="hidden" name="auction_id" value="{auction_id}">
                         <div class="bid-input-group">
                             <span class="currency">$</span>
