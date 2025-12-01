@@ -23,7 +23,7 @@ def render_form(user, message: str = "", values=None):
     values = values or {}   # If values is None or empty, replace it with an empty dictionary {}
     # prevents Python errors later when we try to access fields from it
 
-    item_name = html.escape(values.get("item_name"))
+    item_name = html.escape(values.get("item_name", ""))
     desc = html.escape(values.get("description", ""))
     price = html.escape(values.get("starting_price", ""))
     start = html.escape(values.get("start_dt", ""))
@@ -38,7 +38,7 @@ def render_form(user, message: str = "", values=None):
 
   <!-- Item name/title field -->
   <label for="item_name">Item Name</label><br>
-  <input type="text" id="item_name" name="item_name"> value="{item_name}" required><br><br>
+  <input type="text" id="item_name" name="item_name" value="{item_name}" required><br><br>
 
   <!-- Item description field -->
   <label for="desc">Describe your item</label><br>
@@ -68,7 +68,7 @@ def render_form(user, message: str = "", values=None):
 def create_auction(conn, owner_id, item_name, description, starting_price, start_dt):
     item_name = (item_name or "").strip()
     description = (description or "").strip()
-    if not item_name or description or not starting_price or not start_dt:
+    if not item_name or not description or not starting_price or not start_dt:
         return ("error", "All fields are required.")
 
     sp = to_decimal_str(starting_price)
