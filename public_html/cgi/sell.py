@@ -1,20 +1,40 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import cgitb;
-
-cgitb.enable()
+import cgitb; cgitb.enable()
 import html, os
-from utils import (SITE_ROOT, html_page, redirect, expire_cookie, require_valid_session, db, to_decimal_str)
+from utils import (
+    SITE_ROOT, html_page, redirect, expire_cookie,
+    require_valid_session, db, to_decimal_str
+)
 
-SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60
+SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60  # 168 hours = 604800 seconds
 
 
-def render_form(message: str = "", user_name="User", email=""):
-    # Error Alert styling
+def render_form(user, message: str = "", values=None):
+    """
+    Render the Sell form with a nicer layout, but keep the old,
+    working field names and sticky values.
+    """
+    values = values or {}
+
+    item_name = html.escape(values.get("item_name", ""))
+    desc = html.escape(values.get("description", ""))
+    price = html.escape(values.get("starting_price", ""))
+    start = html.escape(values.get("start_dt", ""))
+
+    # message styling (green for "created", red otherwise)
     alert = ""
     if message:
-        color = "bg-green-100 text-green-800 border-green-200" if "created" in message.lower() else "bg-red-50 text-red-700 border-red-200"
-        alert = f'<div class="p-4 mb-6 rounded-md border {color}">{html.escape(message)}</div>'
+        is_success = "created" in message.lower()
+        color = (
+            "bg-green-100 text-green-800 border-green-200"
+            if is_success else
+            "bg-red-50 text-red-700 border-red-200"
+        )
+        alert = f'<div class="p-4 mb-6 rounded-md border {color}"><strong>{html.escape(message)}</strong></div>'
+
+    user_name = html.escape(user.get("user_name") or user.get("username", "User"))
+    email = html.escape(user.get("email", ""))
 
     body = f"""
     <div class="min-h-screen md:grid md:grid-cols-[260px_1fr]">
@@ -34,7 +54,7 @@ def render_form(message: str = "", user_name="User", email=""):
                     Dashboard
                 </a>
                 <a href="{SITE_ROOT}cgi/transactions.py" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:bg-white/10 hover:text-white transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 01-3 3v8a3 3 0 003 3z"></path></svg>
                     Your Transactions
                 </a>
                 <a href="{SITE_ROOT}cgi/display_auctions.py" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-blue-100 hover:bg-white/10 hover:text-white transition">
@@ -60,16 +80,21 @@ def render_form(message: str = "", user_name="User", email=""):
             <main class="flex-1 p-6 md:p-10 flex justify-center">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 w-full max-w-2xl">
                     {alert}
-                    <form method="post" action="{SITE_ROOT}cgi/sell.py" class="space-y-6">
+                    <form method="post" action="{SITE_ROOT}cgi/sell.py" class="space-y-6" novalidate>
 
                         <div>
-                            <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Item Title</label>
-                            <input type="text" id="title" name="title" required placeholder="e.g. MacBook Pro M1 2021" class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                            <label for="item_name" class="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                            <input type="text" id="item_name" name="item_name" required
+                                   placeholder="e.g. MacBook Pro M1 2021"
+                                   value="{item_name}"
+                                   class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
                         </div>
 
                         <div>
                             <label for="desc" class="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
-                            <textarea id="desc" name="description" required rows="4" placeholder="Describe the condition, specs, etc..." class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                            <textarea id="desc" name="description" required rows="4"
+                                      placeholder="Describe the condition, specs, etc..."
+                                      class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">{desc}</textarea>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -79,21 +104,19 @@ def render_form(message: str = "", user_name="User", email=""):
                                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <span class="text-gray-500 sm:text-sm">$</span>
                                     </div>
-                                    <input type="number" id="price" name="starting_price" step="0.01" min="0" required class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md h-10 border">
+                                    <input type="number" id="price" name="starting_price" step="0.01" min="0" required
+                                           value="{price}"
+                                           class="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md h-10 border">
                                 </div>
                             </div>
 
                             <div>
                                 <label for="start" class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
-                                <input type="datetime-local" id="start" name="start_dt" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                                <input type="datetime-local" id="start" name="start_dt" required
+                                       value="{start}"
+                                       class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                                <p class="text-xs text-gray-500 mt-1">All auctions last 168 hours (7 days).</p>
                             </div>
-                        </div>
-
-                        <div class="bg-blue-50 p-4 rounded-md">
-                            <p class="text-sm text-blue-700 flex items-center gap-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                All auctions run for exactly <b>7 days</b> (168 hours).
-                            </p>
                         </div>
 
                         <div class="flex justify-end pt-4">
@@ -101,80 +124,124 @@ def render_form(message: str = "", user_name="User", email=""):
                                 Create Auction
                             </button>
                         </div>
+
+                        <p class="mt-4 text-sm text-gray-500">
+                            <a href="{SITE_ROOT}cgi/transactions.py" class="text-indigo-600 hover:text-indigo-800">Back to Transactions</a>
+                            &nbsp;|&nbsp;
+                            <a href="{SITE_ROOT}cgi/dashboard.py" class="text-indigo-600 hover:text-indigo-800">Back to Dashboard</a>
+                        </p>
                     </form>
                 </div>
             </main>
         </div>
     </div>
     """
-    print("Content-Type: text/html\n")
+
+    print("Content-Type: text/html; charset=utf-8\n")
     print(html_page("Sell an Item", body))
 
 
-def create_auction(conn, owner_id, title, description, starting_price, start_dt):
-    title = (title or "").strip()
+def create_auction(conn, owner_id, item_name, description, starting_price, start_dt):
+    """
+    This is your original working backend logic.
+    """
+    item_name = (item_name or "").strip()
     description = (description or "").strip()
-
-    if not title or not description or not starting_price or not start_dt:
-        return "All fields are required."
+    if not item_name or not description or not starting_price or not start_dt:
+        return ("error", "All fields are required.")
 
     sp = to_decimal_str(starting_price)
     if sp is None:
-        return "Starting price must be a valid number."
+        return ("error", "Starting price must be a valid number (up to 2 decimals).")
+
+    def normalize_html_datetime(dt_str: str) -> str:
+        if not dt_str:
+            return ""
+        dt = dt_str.replace("T", " ")
+        if len(dt) == 16:
+            dt += ":00"
+        return dt
+
+    start_dt = normalize_html_datetime(start_dt)
 
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
 
-        # 1. Insert Item (Now includes item_name AND description)
+        # Insert Item (matches your original schema)
         cur.execute("""
-                    INSERT INTO Items (owner_id, item_name, description, created_at)
-                    VALUES (%s, %s, %s, NOW())
-                    """, (owner_id, title, description))
+                    INSERT INTO Items (owner_id, item_name, category, description, posted_date, last_modified)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
+                    """, (owner_id, item_name, "General", description))
 
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
 
-        # 2. Insert Auction
+        # Insert Auction
         cur.execute("""
-                    INSERT INTO Auctions (item_id, start_time, duration, status, start_price)
-                    VALUES (%s, %s, %s, CASE WHEN %s <= NOW() THEN 'running' ELSE 'scheduled' END, %s)
-                    """, (item_id, start_dt, SEVEN_DAYS_SECONDS, start_dt, sp))
+                    INSERT INTO Auctions (item_id, start_price, start_time, duration, status)
+                    VALUES (
+                               %s,
+                               %s,
+                               %s,
+                               %s,
+                               CASE WHEN %s <= NOW() THEN 'running' ELSE 'scheduled' END
+                           )
+                    """, (item_id, sp, start_dt, SEVEN_DAYS_SECONDS, start_dt))
+
+        # Get the new auction_id
+        cur.execute("SELECT LAST_INSERT_ID() AS id")
+        auction_id = cur.fetchone()["id"]
 
         cur.execute("COMMIT")
-    return "Auction created successfully!"
+
+    return ("ok", auction_id)
 
 
 def main():
+    # Require a valid session
     user, sid = require_valid_session()
     if not user:
         headers = [expire_cookie("SID", path=SITE_ROOT)] if sid else []
         redirect(SITE_ROOT + "cgi/login.py", extra_headers=headers)
         return
 
-    email = html.escape(user.get("email", ""))
-    user_name = html.escape(user.get("user_name", ""))
-
-    if os.environ.get("REQUEST_METHOD", "GET") == "GET":
-        render_form(user_name=user_name, email=email)
+    method = os.environ.get("REQUEST_METHOD", "GET").upper()
+    if method == "GET":
+        render_form(user)
         return
 
     import cgi
     form = cgi.FieldStorage()
+    values = {
+        "item_name":      form.getfirst("item_name", ""),
+        "description":    form.getfirst("description", ""),
+        "starting_price": form.getfirst("starting_price", ""),
+        "start_dt":       form.getfirst("start_dt", "")
+    }
+
     conn = db()
     try:
-        # Pass the new 'title' field to the creation function
-        message = create_auction(
-            conn,
-            user["user_id"],
-            form.getfirst("title", ""),  # New field
-            form.getfirst("description", ""),
-            form.getfirst("starting_price", ""),
-            form.getfirst("start_dt", "")
-        )
+        try:
+            status, payload = create_auction(
+                conn, user["user_id"],
+                values["item_name"],
+                values["description"],
+                values["starting_price"],
+                values["start_dt"]
+            )
+            if status == "ok":
+                # PRG: Redirect so refresh/double-click doesn’t re-POST
+                redirect(f"{SITE_ROOT}cgi/transactions.py?flash=auction_created&aid={payload}")
+                return
+            else:
+                message = payload  # error string from create_auction
+        except Exception as e:
+            message = f"Error creating auction: {html.escape(str(e))}"
     finally:
         conn.close()
 
-    render_form(message, user_name=user_name, email=email)
+    # On error, re-render with sticky values
+    render_form(user, message, values)
 
 
 if __name__ == "__main__":
