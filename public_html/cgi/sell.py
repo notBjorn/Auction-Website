@@ -61,9 +61,15 @@ def render_form(message: str = "", user_name="User", email=""):
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-200 w-full max-w-2xl">
                     {alert}
                     <form method="post" action="{SITE_ROOT}cgi/sell.py" class="space-y-6">
+
+                        <div>
+                            <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Item Title</label>
+                            <input type="text" id="title" name="title" required placeholder="e.g. MacBook Pro M1 2021" class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                        </div>
+
                         <div>
                             <label for="desc" class="block text-sm font-medium text-gray-700 mb-1">Item Description</label>
-                            <textarea id="desc" name="description" required rows="3" class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
+                            <textarea id="desc" name="description" required rows="4" placeholder="Describe the condition, specs, etc..." class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"></textarea>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -105,25 +111,35 @@ def render_form(message: str = "", user_name="User", email=""):
     print(html_page("Sell an Item", body))
 
 
-def create_auction(conn, owner_id, description, starting_price, start_dt):
-    # (Same logic as before, just kept here for completeness)
+def create_auction(conn, owner_id, title, description, starting_price, start_dt):
+    title = (title or "").strip()
     description = (description or "").strip()
-    if not description or not starting_price or not start_dt:
+
+    if not title or not description or not starting_price or not start_dt:
         return "All fields are required."
+
     sp = to_decimal_str(starting_price)
     if sp is None:
         return "Starting price must be a valid number."
 
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
-        cur.execute("INSERT INTO Items (owner_id, item_name, created_at) VALUES (%s, %s, NOW())",
-                    (owner_id, description))
+
+        # 1. Insert Item (Now includes item_name AND description)
+        cur.execute("""
+                    INSERT INTO Items (owner_id, item_name, description, created_at)
+                    VALUES (%s, %s, %s, NOW())
+                    """, (owner_id, title, description))
+
         cur.execute("SELECT LAST_INSERT_ID() AS id")
         item_id = cur.fetchone()["id"]
+
+        # 2. Insert Auction
         cur.execute("""
                     INSERT INTO Auctions (item_id, start_time, duration, status, start_price)
                     VALUES (%s, %s, %s, CASE WHEN %s <= NOW() THEN 'running' ELSE 'scheduled' END, %s)
                     """, (item_id, start_dt, SEVEN_DAYS_SECONDS, start_dt, sp))
+
         cur.execute("COMMIT")
     return "Auction created successfully!"
 
@@ -146,8 +162,15 @@ def main():
     form = cgi.FieldStorage()
     conn = db()
     try:
-        message = create_auction(conn, user["user_id"], form.getfirst("description", ""),
-                                 form.getfirst("starting_price", ""), form.getfirst("start_dt", ""))
+        # Pass the new 'title' field to the creation function
+        message = create_auction(
+            conn,
+            user["user_id"],
+            form.getfirst("title", ""),  # New field
+            form.getfirst("description", ""),
+            form.getfirst("starting_price", ""),
+            form.getfirst("start_dt", "")
+        )
     finally:
         conn.close()
 
