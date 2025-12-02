@@ -73,6 +73,7 @@ def render_form(message: str = "", user_name="User", email=""):
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
                             <div>
                                 <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Starting Price ($)</label>
                                 <div class="relative rounded-md shadow-sm">
@@ -84,8 +85,13 @@ def render_form(message: str = "", user_name="User", email=""):
                             </div>
 
                             <div>
-                                <label for="start" class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
-                                <input type="datetime-local" id="start" name="start_dt" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                                <input type="date" id="start_date" name="start_date" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label for="start_time" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                                <input type="time" id="start_time" name="start_time" required class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm h-10">
                             </div>
                         </div>
 
@@ -125,7 +131,7 @@ def create_auction(conn, owner_id, title, description, starting_price, start_dt)
     with conn.cursor() as cur:
         cur.execute("START TRANSACTION")
 
-        # 1. Insert Item (Now includes item_name AND description)
+        # 1. Insert Item
         cur.execute("""
                     INSERT INTO Items (owner_id, item_name, description, created_at)
                     VALUES (%s, %s, %s, NOW())
@@ -161,15 +167,26 @@ def main():
     import cgi
     form = cgi.FieldStorage()
     conn = db()
+
+    # --- LOGIC UPDATE: Combine Date and Time ---
+    s_date = form.getfirst("start_date", "")
+    s_time = form.getfirst("start_time", "")
+
+    # Combine them into YYYY-MM-DD HH:MM
+    # (Browsers send date as YYYY-MM-DD and time as HH:MM)
+    if s_date and s_time:
+        full_start_dt = f"{s_date} {s_time}"
+    else:
+        full_start_dt = ""
+
     try:
-        # Pass the new 'title' field to the creation function
         message = create_auction(
             conn,
             user["user_id"],
-            form.getfirst("title", ""),  # New field
+            form.getfirst("title", ""),
             form.getfirst("description", ""),
             form.getfirst("starting_price", ""),
-            form.getfirst("start_dt", "")
+            full_start_dt  # Pass the combined string
         )
     finally:
         conn.close()
