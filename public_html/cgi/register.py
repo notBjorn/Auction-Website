@@ -8,7 +8,9 @@
 # =============================================================================
 
 # ====== Imports / Setup ======================================================
-import cgitb; cgitb.enable()
+import cgitb;
+
+cgitb.enable()
 import os, html
 
 from utils import (
@@ -16,29 +18,67 @@ from utils import (
     html_page, parse_urlencoded, read_post_body, redirect,
     db, sha256_hex, validate_email, normalize_name_from_email
 )
+from styles import THEME as s
+
 
 # ====== View: Registration Form =============================================
 def render_form(msg: str = "", values: dict | None = None) -> str:
     v = values or {}
-    note = f'<p style="color:red;">{html.escape(msg)}</p>' if msg else ""
-    email_val = html.escape(v.get("email",""))
-    name_val  = html.escape(v.get("user_name",""))
+    email_val = html.escape(v.get("email", ""))
+    name_val = html.escape(v.get("user_name", ""))
+
+    # Styled Alert Box
+    note = ""
+    if msg:
+        note = f'<div class="{s["alert_error"]}">{html.escape(msg)}</div>'
+
     return f"""
-    <h1>Create Account</h1>
-    {note}
-    <form method="post" action="{SITE_ROOT}cgi/register.py" novalidate>
-      <label for="n">Display name</label>
-      <input id="n" name="user_name" type="text" required value="{name_val}">
-      <label for="e">Email</label>
-      <input id="e" name="email" type="email" required value="{email_val}">
-      <label for="p">Password</label>
-      <input id="p" name="password" type="password" required minlength="{MIN_PW_LEN}">
-      <label for="c">Confirm Password</label>
-      <input id="c" name="confirm" type="password" required minlength="{MIN_PW_LEN}">
-      <button type="submit">Register</button>
-    </form>
-    <p>Already have an account? <a href="{SITE_ROOT}cgi/login.py">Log in</a>.</p>
+    <div class="{s['layout_auth']}">
+        <div class="{s['card_auth']}">
+
+            <div class="text-center">
+                <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Create Account</h1>
+                <p class="mt-2 text-sm text-gray-600">Join the auction community today</p>
+            </div>
+
+            {note}
+
+            <form class="mt-8 space-y-6" method="post" action="{SITE_ROOT}cgi/register.py" novalidate>
+
+                <div>
+                    <label for="n" class="{s['label']}">Display Name</label>
+                    <input id="n" name="user_name" type="text" value="{name_val}" required class="{s['input']}">
+                </div>
+
+                <div>
+                    <label for="e" class="{s['label']}">Email Address</label>
+                    <input id="e" name="email" type="email" value="{email_val}" required class="{s['input']}">
+                </div>
+
+                <div>
+                    <label for="p" class="{s['label']}">Password</label>
+                    <input id="p" name="password" type="password" required minlength="{MIN_PW_LEN}" class="{s['input']}">
+                </div>
+
+                <div>
+                    <label for="c" class="{s['label']}">Confirm Password</label>
+                    <input id="c" name="confirm" type="password" required minlength="{MIN_PW_LEN}" class="{s['input']}">
+                </div>
+
+                <button type="submit" class="{s['btn_full']}">Register</button>
+            </form>
+
+            <div class="text-center text-sm">
+                <span class="text-gray-600">Already have an account?</span>
+                <a href="{SITE_ROOT}cgi/login.py" class="font-medium text-indigo-600 hover:text-indigo-500">
+                    Log in
+                </a>
+            </div>
+
+        </div>
+    </div>
     """
+
 
 # ====== Controller: Main Request Handler =====================================
 def main():
@@ -57,9 +97,9 @@ def main():
     # ----- POST: parse form ---------------------------------------------------
     form = parse_urlencoded(read_post_body())
     user_name = (form.get("user_name") or "").strip()
-    email     = (form.get("email") or "").strip().lower()
-    pw        = form.get("password") or ""
-    confirm   = form.get("confirm") or ""
+    email = (form.get("email") or "").strip().lower()
+    pw = form.get("password") or ""
+    confirm = form.get("confirm") or ""
 
     # ====== Validation: Server-side checks ===================================
     if not email or not pw or not confirm:
@@ -111,6 +151,7 @@ def main():
 
     # ====== Redirect: Success -> Login =======================================
     redirect(f"{SITE_ROOT}cgi/login.py")
+
 
 # ====== Entry Point ==========================================================
 if __name__ == "__main__":
