@@ -6,9 +6,9 @@ print("Content-Type: text/html\n")  # Required CGI header
 # --- Database connection info ---
 connection = pymysql.connect(
     host='localhost',
-    user='cs370_section2_cafcode',       # your team's MySQL username
-    password='edocfac_001', # your team's MySQL password
-    database='cs370_section2_cafcode',   # your team's database
+    user='cs370_section2_cafcode',      # our team's MySQL username
+    password='edocfac_001',                   # our team's MySQL password
+    database='cs370_section2_cafcode',  # our team's database
     cursorclass=pymysql.cursors.DictCursor
 )
 
