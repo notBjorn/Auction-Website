@@ -1,0 +1,46 @@
+Project: Display Auctions (How to Test)
+File: display_auctions.py (plus shared utils.py, dashboard.py, bid.py, bid_update.py, login.py)
+Team: Caffeinated Coders
+URL root: https://blue.cs.sonoma.edu/~cafcode/
+
+Test Accounts
+
+User: Seller
+Username: seller@example.com
+
+Password: seller123
+
+User: Bidder
+Username: bidder@example.com
+
+Password: bidder123
+
+A. Display Auctions (Logged OUT)
+
+Open the landing page (URL above) in a browser (not logged in)
+
+Expected output:
+• All running / unexpired auctions are displayed
+• No “Bid” buttons anywhere
+• Expired auctions do not appear
+
+B. Display Auctions (Logged IN as Seller)
+
+Log in as seller@example.com
+
+Click the Browse Auctions link
+
+Expected output:
+• All running auctions appear
+• Auctions owned by the seller do not show
+
+C. Display Auctions (Logged IN as Bidder)
+
+Log in as bidder@example.com
+
+Load the display auctions page
+
+Expected output:
+• All running auctions appear
+• Expired auctions do not appear
+

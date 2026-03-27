@@ -5,7 +5,10 @@
 
 import os, sys, re, html, hashlib, secrets
 import urllib.parse as urlparse
-import pymysql.cursors
+try:
+    import pymysql.cursors
+except ImportError:
+    pymysql = None  # Mock it so the script doesn't crash locally
 from typing import Any, Dict, List, Optional, Tuple
 
 # ====== CONFIG (keep in sync across scripts) =================================
@@ -28,6 +31,9 @@ INACTIVITY_SECONDS = 300  # 5 minutes
 # ====== DB ==================================================================
 def db():
     """Get a new MySQL connection (DictCursor). Caller must close()."""
+    if pymysql is None:
+        raise ImportError("pymysql is not installed. You cannot connect to the DB locally.")
+
     return pymysql.connect(
         host=DB_HOST, user=DB_USER, password=DB_PASS, database=DB_NAME,
         cursorclass=pymysql.cursors.DictCursor
@@ -81,8 +87,11 @@ def html_page(title: str, body_html: str) -> str:
 <meta charset="UTF-8">
 <title>{html.escape(title)}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style> body {{ font-family: 'Inter', sans-serif; }} </style>
 </head>
-<body>
+<body class="bg-gray-50 text-gray-900">
 {body_html}
 </body>
 </html>"""
@@ -295,25 +304,31 @@ def to_decimal_str(x: str) -> Optional[str]:
 
 # ====== Database Refresh ===================================================
 def refresh_auction_statuses(conn):
-    """Sync auction.status with current time (scheduled → running → ended)."""
     with conn.cursor() as cur:
-        # 1) Move SCHEDULED → RUNNING when start_time has passed,
-        #    but the auction hasn't fully expired yet.
+        # 1) scheduled → running
         cur.execute("""
-                    UPDATE Auctions
-                    SET status = 'running'
-                    WHERE status = 'scheduled'
-                      AND NOW() >= start_time
-                      AND NOW() < DATE_ADD(start_time, INTERVAL duration SECOND)
-                    """)
+            UPDATE Auctions
+            SET status = 'running'
+            WHERE status = 'scheduled'
+              AND NOW() >= start_time
+              AND NOW() < DATE_ADD(start_time, INTERVAL duration SECOND)
+        """)
 
-        # 2) Move RUNNING → ENDED when time is up.
+        # 2) running → ended
         cur.execute("""
-                    UPDATE Auctions
-                    SET status = 'ended'
-                    WHERE status = 'running'
-                      AND NOW() >= DATE_ADD(start_time, INTERVAL duration SECOND)
-                    """)
+            UPDATE Auctions
+            SET status = 'ended'
+            WHERE status = 'running'
+              AND NOW() >= DATE_ADD(start_time, INTERVAL duration SECOND)
+        """)
+
+        # 3) scheduled → ended (window missed entirely)
+        cur.execute("""
+            UPDATE Auctions
+            SET status = 'ended'
+            WHERE status = 'scheduled'
+              AND NOW() >= DATE_ADD(start_time, INTERVAL duration SECOND)
+        """)
 
     conn.commit()
 # ============================================================================
